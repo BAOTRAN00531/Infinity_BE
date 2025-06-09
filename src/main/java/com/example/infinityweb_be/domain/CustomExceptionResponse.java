@@ -1,4 +1,4 @@
-package com.example.infinityweb_be.domain.dto;
+package com.example.infinityweb_be.domain;
 
 import lombok.Data;
 import org.springframework.http.HttpStatusCode;

@@ -1,97 +1,87 @@
 package com.example.infinityweb_be.config;
 
+import com.example.infinityweb_be.config.CustomAuthEntryPoint;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
-import com.nimbusds.jose.util.Base64;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
+import java.util.Base64;
 
 @Configuration
 @EnableMethodSecurity(securedEnabled = true)
+@Slf4j
 public class SecurityConfiguration {
-    //config SecurityFilter temporarily disabled
+
+    // ✅ Dùng thuật toán HS256 (đủ an toàn & key bạn hiện tại đủ dài)
+    public static final MacAlgorithm JWT_ALGORITHM = MacAlgorithm.HS256;
+
+    @Value("${assigment_java6.jwt.base64-secret}")
+    private String jwtSecretKey;
+
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, CustomAuthEntryPoint CEP) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, @Lazy CustomAuthEntryPoint authEntryPoint) throws Exception {
         http
-                .csrf(c->c.disable())
-                .authorizeHttpRequests(
-                        authz -> authz
-                                //Setup if it's injected for token,then activity for flow chat wil be done .Else it isn't have so it alert warning about "401 Unauthorized"
-                                .requestMatchers("/","/login", "/indexx","/secure","/refreshh","/public").permitAll()
-                                .anyRequest().authenticated()
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/", "/auth/register", "/auth/login","/auth/verify-email", "/auth/refresh-token","/auth/logout","/public").permitAll()
+                        .anyRequest().authenticated()
                 )
-                .oauth2ResourceServer((oauth2) -> oauth2.jwt(Customizer.withDefaults())
-                        .authenticationEntryPoint(CEP))
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(Customizer.withDefaults())
+                        .authenticationEntryPoint(authEntryPoint)
+                )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(authEntryPoint)
+                        .accessDeniedHandler(new BearerTokenAccessDeniedHandler())
+                )
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .formLogin(form -> form.disable());
 
-                .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(CEP)
-                        .accessDeniedHandler(new BearerTokenAccessDeniedHandler()))
-
-                .formLogin(f ->f.disable())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-
+        log.info("✅ Security filter chain configured.");
         return http.build();
     }
+
+
+
+
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter converter = new JwtGrantedAuthoritiesConverter();
+        converter.setAuthorityPrefix(""); // Nếu không muốn "ROLE_" prefix
+        converter.setAuthoritiesClaimName("role"); // Tên claim chứa role
+
+        JwtAuthenticationConverter jwtConverter = new JwtAuthenticationConverter();
+        jwtConverter.setJwtGrantedAuthoritiesConverter(converter);
+        return jwtConverter;
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-    // Config proxy variable for key of jwt
-    @Value("${assigment_java6.jwt.base64-secret}")
-    private String jwtKeyPath;
-    // Config proxy variable for expiration of jwt
-    @Value("${assigment_java6.jwt.access-token-validity-in-seconds}")
-    private String jwtExpiryInSeconds;
-    //Config func to encoder hash password
-    @Bean
-    public JwtEncoder getjwtEncoder() {
-        return new NimbusJwtEncoder(new ImmutableSecret<>(getsecretKey()));
-    }
 
     @Bean
-    public JwtAuthenticationConverter JwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter converter = new JwtGrantedAuthoritiesConverter();
-        converter.setAuthorityPrefix("");
-        converter.setAuthoritiesClaimName("user");
-        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
-        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(converter);
-        return jwtAuthenticationConverter;
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
     }
-    //    Config the function to decode a encoded variable
-    @Bean
-    public JwtDecoder jwtDecoder() {
-        NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withSecretKey(
-                getsecretKey()).macAlgorithm(SecurityUtil.JWT_ALGORITHM).build();
-        return token -> {
-            try {
-                return jwtDecoder.decode(token);
-            } catch (Exception e) {
-                System.out.println(">>> JWT error: " + e.getMessage());
-                throw e;
-            }
-        };
-    }
-
-    //    Because the key is in Base64,it must be decoded and saved in byte format
-    private SecretKey getsecretKey(){
-        byte[] keyBytes = Base64.from(jwtKeyPath).decode();
-        return new SecretKeySpec(keyBytes, 0, keyBytes.length, SecurityUtil.JWT_ALGORITHM.getName());
-    };
 }
