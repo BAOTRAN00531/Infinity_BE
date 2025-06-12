@@ -1,122 +1,139 @@
 package com.example.infinityweb_be.controller;
 
-import com.example.infinityweb_be.domain.EmailVerificationToken;
-import com.example.infinityweb_be.domain.RefreshToken;
 import com.example.infinityweb_be.domain.User;
+import com.example.infinityweb_be.domain.VerificationToken;
 import com.example.infinityweb_be.domain.dto.LoginDTO;
 import com.example.infinityweb_be.domain.dto.RegisterDTO;
 import com.example.infinityweb_be.domain.dto.ResLoginDTO;
 import com.example.infinityweb_be.repository.UserRepository;
+import com.example.infinityweb_be.repository.VerificationTokenRepository;
 import com.example.infinityweb_be.security.JwtService;
-import com.example.infinityweb_be.security.RefreshTokenService;
 import com.example.infinityweb_be.service.UserDetailCustom;
 import com.example.infinityweb_be.service.UserService;
-import com.example.infinityweb_be.util.SecurityUtil;
-import com.example.infinityweb_be.util.anotation.ApiMessage;
-import com.example.infinityweb_be.util.error.IdInvalidException;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
+import com.example.infinityweb_be.service.VerificationTokenService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
+@Slf4j
 public class AuthenticationController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
-    private final RefreshTokenService refreshTokenService;
     private final UserService userService;
+    private final UserRepository userRepository;
+    private final VerificationTokenRepository verificationTokenRepository;
+    private final VerificationTokenService verificationTokenService;
 
     @Value("${assigment_java6.jwt.refresh-token-validity-in-seconds}")
-    private long refreshTokenExpirySeconds;
+    private long refreshTokenExpiry;
 
-    /**
-     * Đăng nhập: trả về access token và set cookie refresh token
-     */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginDTO dto, HttpServletResponse response) {
+    public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
+
+        // 1. Xác thực
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(dto.getUsername(), dto.getPassword())
+                new UsernamePasswordAuthenticationToken(
+                        loginDTO.getUsername(),      // có thể là username hoặc email
+                        loginDTO.getPassword())
         );
+
+        // 2. Lưu vào context
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
+        // 3. Lấy UserDetails từ Authentication (KHÔNG cast entity!)
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        User user = ((UserDetailCustom) userDetails).getUser();
 
-        // Check nếu chưa xác thực email
-        if (!user.isActive()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("Tài khoản chưa được xác thực email. Vui lòng kiểm tra email để xác thực.");
-        }
+        // 4. Lấy entity User để trả về client (nếu cần)
+        User user = userService.findByEmailOrUsername(loginDTO.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        String accessToken = jwtService.generateAccessToken(userDetails);
-        String refreshToken = refreshTokenService.createRefreshToken(user).getToken();
+        // 5. Sinh JWT
+        String accessToken  = jwtService.generateAccessToken(userDetails);
+        String refreshToken = verificationTokenService
+                .createRefreshToken(user, refreshTokenExpiry)
+                .getToken();
 
-        Cookie refreshTokenCookie = new Cookie("refresh_token", refreshToken);
-        refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60);
-        refreshTokenCookie.setPath("/");
-        response.addCookie(refreshTokenCookie);
-
-        ResLoginDTO responseDTO = new ResLoginDTO();
-        responseDTO.setUserp(new ResLoginDTO.UserLogin(user.getId(), user.getEmail(), user.getUsername()));
-        responseDTO.setAccess_token(accessToken);
-
-        return ResponseEntity.ok().body(responseDTO);
-    }
-
-    /**
-     * Lấy access token mới từ refresh token (qua cookie)
-     */
-    @GetMapping("/refresh-token")
-    public ResponseEntity<ResLoginDTO> refresh(@CookieValue("refresh_token") String refreshToken) {
-        var optional = refreshTokenService.validateRefreshToken(refreshToken);
-        if (optional.isEmpty()) {
-            return ResponseEntity.status(401).build();
-        }
-
-        User user = optional.get().getUser();
-
-        // ✅ Sửa lỗi: truyền đúng kiểu UserDetails
-        String accessToken = jwtService.generateAccessToken(new UserDetailCustom(user));
-
-        ResLoginDTO response = new ResLoginDTO();
+        // 6. Build response
         ResLoginDTO.UserLogin userLogin = new ResLoginDTO.UserLogin(
-                user.getId(), user.getEmail(), user.getUsername()
-        );
-        response.setUserp(userLogin);
-        response.setAccess_token(accessToken);
+                user.getId(), user.getEmail(), user.getUsername());
 
-        return ResponseEntity.ok(response);
+        ResLoginDTO resp = new ResLoginDTO();
+        resp.setAccess_token(accessToken);
+        resp.setUserp(userLogin);
+
+        ResponseCookie cookie = ResponseCookie.from("refresh_token", refreshToken)
+                .httpOnly(true).secure(true).path("/").maxAge(refreshTokenExpiry).build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(resp);
     }
 
 
-    /**
-     * Đăng xuất: xoá refresh token trong DB và cookie
-     */
+    @GetMapping("/refresh-token")
+    public ResponseEntity<ResLoginDTO> refreshToken(@CookieValue("refresh_token") String token) {
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        var verificationTokenOpt = verificationTokenService.validateRefreshToken(token);
+        if (verificationTokenOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        VerificationToken verificationToken = verificationTokenOpt.get();
+        if (verificationToken.isConfirmed() && verificationToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        User user = verificationToken.getUser();
+        if (!user.isActive()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // User chưa active
+        }
+
+        String newAccessToken = jwtService.generateAccessToken((UserDetails) user);
+        String newRefreshToken = verificationTokenService.createRefreshToken(user, refreshTokenExpiry).getToken();
+
+        ResLoginDTO.UserLogin userLogin = new ResLoginDTO.UserLogin(user.getId(), user.getEmail(), user.getUsername());
+        ResLoginDTO response = new ResLoginDTO();
+        response.setAccess_token(newAccessToken);
+        response.setUserp(userLogin);
+
+        ResponseCookie cookie = ResponseCookie.from("refresh_token", newRefreshToken)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(refreshTokenExpiry)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(response);
+    }
+
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout() {
-        String email = SecurityUtil.getCurrentUserLogin().orElse(null);
-        if (email != null) {
-            User user = userService.handleGetAccountByEmail(email);
-            if (user != null) {
-                refreshTokenService.deleteTokenByUser(user);  // <- cần transactional
-            }
+    public ResponseEntity<Void> logout(@CookieValue(name = "refresh_token", required = false) String token) {
+        if (token != null) {
+            verificationTokenService.validateRefreshToken(token)
+                    .ifPresent(t -> verificationTokenService.deleteRefreshToken(t.getUser()));
         }
 
         ResponseCookie deleteCookie = ResponseCookie.from("refresh_token", "")
@@ -130,74 +147,94 @@ public class AuthenticationController {
                 .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
                 .build();
     }
-
-    /**
-     * Lấy thông tin tài khoản từ access token
-     */
-    @GetMapping("/account")
-    public ResponseEntity<ResLoginDTO.UserLogin> getAccount() {
-        String email = SecurityUtil.getCurrentUserLogin().orElse(null);
-        if (email == null) {
-            return ResponseEntity.status(401).build();
-        }
-
-        User currentUser = userService.handleGetAccountByEmail(email);
-        if (currentUser == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        ResLoginDTO.UserLogin userLogin = new ResLoginDTO.UserLogin(
-                currentUser.getId(), currentUser.getEmail(), currentUser.getUsername());
-
-        return ResponseEntity.ok(userLogin);
-    }
-
-    @GetMapping("/public")
-    public String publicEndpoint() {
-        return "This is public endpoint";
-    }
-
-    @GetMapping("/secure")
-    public String secureEndpoint() {
-        return "This is secure endpoint";
-    }
     @PostMapping("/register")
-    public ResponseEntity<String> register(@Valid @RequestBody RegisterDTO registerDTO) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterDTO registerDTO) {
         try {
-            userService.registerNewUser(registerDTO);
-            return ResponseEntity.ok("Đăng ký thành công");
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            // 1. Tạo user mới
+            User newUser = userService.registerNewUser(registerDTO); // đã mã hóa password, set role, gửi email xác thực
+
+            // 2. Tạo access token
+            UserDetails userDetails = new UserDetailCustom(newUser);
+            String accessToken = jwtService.generateAccessToken(userDetails);
+
+            // 3. Tạo refresh token và lưu vào bảng verification_token (type=refresh)
+            String refreshToken = jwtService.generateRefreshToken(userDetails);
+            verificationTokenService.saveToken(newUser, refreshToken, "refresh");
+
+            // 4. Tạo response DTO
+            ResLoginDTO.UserLogin userLogin = new ResLoginDTO.UserLogin(
+                    newUser.getId(),
+                    newUser.getEmail(),
+                    newUser.getUsername()
+            );
+
+            ResLoginDTO response = new ResLoginDTO();
+            response.setAccess_token(accessToken);
+            response.setUserp(userLogin);
+
+            // 5. Đặt cookie refresh_token
+            ResponseCookie cookie = ResponseCookie.from("refresh_token", refreshToken)
+                    .httpOnly(true)
+                    .secure(true)
+                    .path("/")
+                    .maxAge(7 * 24 * 60 * 60) // 7 ngày
+                    .build();
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                    .body(response);
+
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Đăng ký thất bại");
         }
     }
+    // com.example.infinityweb_be.controller/AuthenticationController.java
     @GetMapping("/verify-email")
-    public ResponseEntity<String> verifyEmail(@RequestParam("token") String token) {
-        // Tìm token trong DB
-        EmailVerificationToken verificationToken = userService.getEmailVerificationToken(token);
-        if (verificationToken == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Token xác thực không hợp lệ hoặc đã bị sử dụng");
+    public ResponseEntity<Map<String, Object>> verifyEmail(@RequestParam("token") String token) {
+        log.info("Starting verification process for token: {}", token);
+        Optional<VerificationToken> optionalToken = verificationTokenRepository.findByTokenAndType(token, "EMAIL_CONFIRMATION");
+
+        if (optionalToken.isEmpty()) {
+            log.error("No matching token found in database for token: {}", token);
+            return ResponseEntity.badRequest().body(Map.of("message", "Token không hợp lệ hoặc đã bị sử dụng"));
         }
 
-        // Kiểm tra thời gian hết hạn token
-        if (verificationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Token xác thực đã hết hạn");
+        VerificationToken vt = optionalToken.get();
+        log.info("Token details - expiresAt: {}, confirmed: {}, user: {}", vt.getExpiresAt(), vt.isConfirmed(), vt.getUser().getEmail());
+
+        if (vt.isConfirmed()) {
+            log.warn("Token already confirmed for user: {}", vt.getUser().getEmail());
+            return ResponseEntity.badRequest().body(Map.of("message", "Token đã được xác thực trước đó"));
         }
 
-        // Lấy user
-        User user = verificationToken.getUser();
-
-        if (user.isActive()) {
-            return ResponseEntity.badRequest().body("Tài khoản đã được xác thực trước đó");
+        if (vt.getExpiresAt().isBefore(LocalDateTime.now())) {
+            log.error("Token expired - user: {}, expiresAt: {}", vt.getUser().getEmail(), vt.getExpiresAt());
+            return ResponseEntity.badRequest().body(Map.of("message", "Token xác thực đã hết hạn"));
         }
 
-        // Kích hoạt tài khoản user
-        userService.enableUser(user);
+        User user = vt.getUser();
+        if (!user.isActive()) {
+            user.setActive(true);
+            try {
+                User savedUser = userRepository.save(user);
+                log.info("User activated successfully - email: {}, id: {}", savedUser.getEmail(), savedUser.getId());
+            } catch (Exception e) {
+                log.error("Failed to save user activation - email: {}, error: {}", user.getEmail(), e.getMessage(), e);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("message", "Lỗi khi kích hoạt tài khoản: " + e.getMessage()));
+            }
+        } else {
+            log.info("User already active - email: {}", user.getEmail());
+        }
 
-        // Xoá token sau khi xác thực thành công
-        userService.deleteEmailVerificationToken(verificationToken);
+        vt.setConfirmed(true);
+        verificationTokenRepository.save(vt);
+        log.info("Token marked as confirmed - user: {}", user.getEmail());
 
-        return ResponseEntity.ok("Xác thực email thành công. Bạn có thể đăng nhập ngay bây giờ.");
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(URI.create("http://localhost:3001/verify-success"));
+        return new ResponseEntity<>(Map.of("message", "Xác thực email thành công. Chuyển hướng sau 3 giây..."), headers, HttpStatus.SEE_OTHER);
     }
-
-
 }
