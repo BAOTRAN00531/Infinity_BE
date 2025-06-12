@@ -1,4 +1,4 @@
-package com.example.infinityweb_be.config;
+package com.example.infinityweb_be.security;
 
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;

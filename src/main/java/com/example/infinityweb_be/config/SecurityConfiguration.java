@@ -3,7 +3,6 @@ package com.example.infinityweb_be.config;
 import com.example.infinityweb_be.config.CustomAuthEntryPoint;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +14,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,15 +24,18 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
-import java.util.Base64;
+import java.util.Arrays;
 
 @Configuration
+@EnableWebSecurity
 @EnableMethodSecurity(securedEnabled = true)
 @Slf4j
 public class SecurityConfiguration {
 
-    // ✅ Dùng thuật toán HS256 (đủ an toàn & key bạn hiện tại đủ dài)
     public static final MacAlgorithm JWT_ALGORITHM = MacAlgorithm.HS256;
 
     @Value("${assigment_java6.jwt.base64-secret}")
@@ -42,8 +45,9 @@ public class SecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http, @Lazy CustomAuthEntryPoint authEntryPoint) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
+                .addFilterBefore(corsFilter(), org.springframework.security.web.authentication.logout.LogoutFilter.class) // Đảm bảo CorsFilter chạy trước
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/auth/register", "/auth/login","/auth/verify-email", "/auth/refresh-token","/auth/logout","/public").permitAll()
+                        .requestMatchers("/", "/auth/register", "/auth/login", "/auth/verify-email", "/auth/refresh-token", "/auth/logout", "/public").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
@@ -61,15 +65,25 @@ public class SecurityConfiguration {
         return http.build();
     }
 
-
-
+    @Bean
+    public CorsFilter corsFilter() {
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        CorsConfiguration config = new CorsConfiguration();
+        // Cập nhật để hỗ trợ cả 3000 và 3001 (nếu cần)
+        config.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:3001"));
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(Arrays.asList("*"));
+        config.setAllowCredentials(true);
+        config.setMaxAge(3600L); // Cache preflight 1 giờ
+        source.registerCorsConfiguration("/**", config);
+        return new CorsFilter(source);
+    }
 
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter converter = new JwtGrantedAuthoritiesConverter();
-        converter.setAuthorityPrefix(""); // Nếu không muốn "ROLE_" prefix
-        converter.setAuthoritiesClaimName("role"); // Tên claim chứa role
-
+        converter.setAuthorityPrefix("");
+        converter.setAuthoritiesClaimName("role");
         JwtAuthenticationConverter jwtConverter = new JwtAuthenticationConverter();
         jwtConverter.setJwtGrantedAuthoritiesConverter(converter);
         return jwtConverter;

@@ -18,6 +18,5 @@ public class RegisterDTO {
 
     @NotBlank(message = "Mật khẩu không được để trống")
     private String password;
-    @NotBlank(message = "Vai trò không được để trống")
     private String role;
 }
