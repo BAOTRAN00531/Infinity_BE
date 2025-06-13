@@ -5,6 +5,7 @@ import com.example.infinityweb_be.domain.VerificationToken;
 import com.example.infinityweb_be.domain.dto.LoginDTO;
 import com.example.infinityweb_be.domain.dto.RegisterDTO;
 import com.example.infinityweb_be.domain.dto.ResLoginDTO;
+import com.example.infinityweb_be.domain.dto.ForgotPasswordDTO;
 import com.example.infinityweb_be.repository.UserRepository;
 import com.example.infinityweb_be.repository.VerificationTokenRepository;
 import com.example.infinityweb_be.security.JwtService;
@@ -16,18 +17,23 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 
 @RestController
 @RequestMapping("/auth")
@@ -41,7 +47,8 @@ public class AuthenticationController {
     private final UserRepository userRepository;
     private final VerificationTokenRepository verificationTokenRepository;
     private final VerificationTokenService verificationTokenService;
-
+    private final JavaMailSender mailSender;
+    private final PasswordEncoder passwordEncoder;
     @Value("${assigment_java6.jwt.refresh-token-validity-in-seconds}")
     private long refreshTokenExpiry;
 
@@ -237,4 +244,124 @@ public class AuthenticationController {
         headers.setLocation(URI.create("http://localhost:3001/verify-success"));
         return new ResponseEntity<>(Map.of("message", "Xác thực email thành công. Chuyển hướng sau 3 giây..."), headers, HttpStatus.SEE_OTHER);
     }
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, Object>> forgotPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        Optional<User> optionalUser = userRepository.findByEmail(email);
+
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email không tồn tại"));
+        }
+
+        User user = optionalUser.get();
+        // Ép kiểu Integer sang Long
+        Long userId = user.getId().longValue();
+        verificationTokenRepository.deleteByUserIdAndType(userId, "FORGOT_PASSWORD");
+        String otp = generateOtp();
+        LocalDateTime createdAt = LocalDateTime.now();
+        LocalDateTime expiresAt = createdAt.plusMinutes(15);
+
+        VerificationToken vt = VerificationToken.builder()
+                .token(otp)
+                .createdAt(createdAt)
+                .expiresAt(expiresAt)
+                .confirmed(false)
+                .type("FORGOT_PASSWORD")
+                .user(user)
+                .build();
+        verificationTokenRepository.save(vt);
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("Mã OTP khôi phục mật khẩu");
+        message.setText("Mã OTP của bạn là: " + otp + ". Hiệu lực trong 15 phút.");
+        mailSender.send(message);
+
+        log.info("OTP sent to {}: {}", email, otp);
+        return ResponseEntity.ok(Map.of("message", "Mã OTP đã được gửi đến email của bạn"));
+    }
+
+    @PostMapping("/resend-otp")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> resendOtp(@RequestBody Map<String, String> request) {
+
+        String email = request.get("email");
+        Optional<User> optionalUser = userRepository.findByEmail(email);
+
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email không tồn tại"));
+        }
+
+        User user = optionalUser.get();
+        // Ép kiểu Integer sang Long
+        Long userId = user.getId().longValue();
+        verificationTokenRepository.deleteByUserIdAndType(userId, "FORGOT_PASSWORD");
+        String otp = generateOtp();
+        LocalDateTime createdAt = LocalDateTime.now();
+        LocalDateTime expiresAt = createdAt.plusMinutes(15);
+
+        VerificationToken vt = VerificationToken.builder()
+                .token(otp)
+                .createdAt(createdAt)
+                .expiresAt(expiresAt)
+                .confirmed(false)
+                .type("FORGOT_PASSWORD")
+                .user(user)
+                .build();
+        verificationTokenRepository.save(vt);
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("Mã OTP khôi phục mật khẩu (gửi lại)");
+        message.setText("Mã OTP mới của bạn là: " + otp + ". Hiệu lực trong 15 phút.");
+        mailSender.send(message);
+
+        log.info("Resent OTP to {}: {}", email, otp);
+        return ResponseEntity.ok(Map.of("message", "Mã OTP mới đã được gửi đến email của bạn"));
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<Map<String, Object>> verifyOtp(@RequestBody ForgotPasswordDTO dto) {
+        Optional<VerificationToken> optionalToken = verificationTokenRepository.findByTokenAndType(dto.getOtp(), "FORGOT_PASSWORD");
+
+        if (optionalToken.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Mã OTP không hợp lệ"));
+        }
+
+        VerificationToken vt = optionalToken.get();
+        if (vt.getExpiresAt().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Mã OTP đã hết hạn"));
+        }
+
+        if (vt.isConfirmed()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Mã OTP đã được sử dụng"));
+        }
+
+        vt.setConfirmed(true);
+        verificationTokenRepository.save(vt);
+        return ResponseEntity.ok(Map.of("message", "Xác thực OTP thành công", "userId", vt.getUser().getId()));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, Object>> resetPassword(@RequestBody ForgotPasswordDTO dto) {
+        Optional<VerificationToken> optionalToken = verificationTokenRepository.findByTokenAndType(dto.getOtp(), "FORGOT_PASSWORD");
+
+        if (optionalToken.isEmpty() || !optionalToken.get().isConfirmed()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Mã OTP không hợp lệ hoặc chưa xác thực"));
+        }
+
+        User user = optionalToken.get().getUser();
+        user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        userRepository.save(user);
+
+        verificationTokenRepository.delete(optionalToken.get());
+        return ResponseEntity.ok(Map.of("message", "Đặt lại mật khẩu thành công. Vui lòng đăng nhập!"));
+    }
+
+    private String generateOtp() {
+        Random random = new Random();
+        int otp = 100000 + random.nextInt(900000); // OTP 6 chữ số
+        return String.valueOf(otp);
+    }
+
 }
