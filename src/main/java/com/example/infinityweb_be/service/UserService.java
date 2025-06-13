@@ -60,7 +60,7 @@ public class UserService {
         // ✅ Tạo token và lưu vào DB qua VerificationTokenService
         VerificationToken token = tokenService.createVerificationToken(user);
 
-        String link = "http://localhost:3001/verify-email?token=" + token.getToken();
+        String link = "http://localhost:3000/verify-email?token=" + token.getToken();
         String subject = "Xác thực tài khoản InfinityWeb";
         String body = "Xin chào " + user.getUsername() + ",\n\n" +
                 "Vui lòng bấm vào đường link dưới đây để xác thực tài khoản:\n" +

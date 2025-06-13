@@ -29,6 +29,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -47,7 +48,8 @@ public class SecurityConfiguration {
                 .csrf(csrf -> csrf.disable())
                 .addFilterBefore(corsFilter(), org.springframework.security.web.authentication.logout.LogoutFilter.class) // Đảm bảo CorsFilter chạy trước
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/auth/register", "/auth/login", "/auth/verify-email", "/auth/refresh-token", "/auth/logout", "/public").permitAll()
+                        .requestMatchers("/", "/auth/register", "/auth/login", "/auth/verify-email", "/auth/refresh-token", "/auth/logout","/auth/forgot-password", "/auth/resend-otp",
+                                "/auth/verify-otp", "/auth/reset-password").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
@@ -70,7 +72,7 @@ public class SecurityConfiguration {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
         // Cập nhật để hỗ trợ cả 3000 và 3001 (nếu cần)
-        config.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:3001"));
+        config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("*"));
         config.setAllowCredentials(true);
