@@ -52,48 +52,81 @@ public class AuthenticationController {
     @Value("${assigment_java6.jwt.refresh-token-validity-in-seconds}")
     private long refreshTokenExpiry;
 
+//    @PostMapping("/login")
+//    public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
+//
+//        // 1. Xác thực
+//        Authentication authentication = authenticationManager.authenticate(
+//                new UsernamePasswordAuthenticationToken(
+//                        loginDTO.getUsername(),      // có thể là username hoặc email
+//                        loginDTO.getPassword())
+//        );
+//
+//        // 2. Lưu vào context
+//        SecurityContextHolder.getContext().setAuthentication(authentication);
+//
+//        // 3. Lấy UserDetails từ Authentication (KHÔNG cast entity!)
+//        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+//
+//        // 4. Lấy entity User để trả về client (nếu cần)
+//        User user = userService.findByEmailOrUsername(loginDTO.getUsername())
+//                .orElseThrow(() -> new RuntimeException("User not found"));
+//
+//        // 5. Sinh JWT
+//        String accessToken  = jwtService.generateAccessToken(userDetails);
+//        String refreshToken = verificationTokenService
+//                .createRefreshToken(user, refreshTokenExpiry)
+//                .getToken();
+//
+//        // 6. Build response
+//        ResLoginDTO.UserLogin userLogin = new ResLoginDTO.UserLogin(
+//                user.getId(), user.getEmail(), user.getUsername());
+//
+//        ResLoginDTO resp = new ResLoginDTO();
+//        resp.setAccess_token(accessToken);
+//        resp.setUserp(userLogin);
+//
+//        ResponseCookie cookie = ResponseCookie.from("refresh_token", refreshToken)
+//                .httpOnly(true).secure(true).path("/").maxAge(refreshTokenExpiry).build();
+//
+//        return ResponseEntity.ok()
+//                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+//                .body(resp);
+//    }
     @PostMapping("/login")
     public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
-
         // 1. Xác thực
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginDTO.getUsername(),      // có thể là username hoặc email
-                        loginDTO.getPassword())
+                new UsernamePasswordAuthenticationToken(loginDTO.getUsername(), loginDTO.getPassword())
         );
 
         // 2. Lưu vào context
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        // 3. Lấy UserDetails từ Authentication (KHÔNG cast entity!)
+        // 3. Lấy UserDetails
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-        // 4. Lấy entity User để trả về client (nếu cần)
+        // 4. Lấy User entity
         User user = userService.findByEmailOrUsername(loginDTO.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         // 5. Sinh JWT
-        String accessToken  = jwtService.generateAccessToken(userDetails);
-        String refreshToken = verificationTokenService
-                .createRefreshToken(user, refreshTokenExpiry)
-                .getToken();
+        String accessToken = jwtService.generateAccessToken(userDetails);
+        String refreshToken = verificationTokenService.createRefreshToken(user, jwtService.getRefreshTokenExpiry()).getToken();
 
         // 6. Build response
-        ResLoginDTO.UserLogin userLogin = new ResLoginDTO.UserLogin(
-                user.getId(), user.getEmail(), user.getUsername());
-
+        ResLoginDTO.UserLogin userLogin = new ResLoginDTO.UserLogin(user.getId(), user.getEmail(), user.getUsername());
         ResLoginDTO resp = new ResLoginDTO();
         resp.setAccess_token(accessToken);
         resp.setUserp(userLogin);
 
         ResponseCookie cookie = ResponseCookie.from("refresh_token", refreshToken)
-                .httpOnly(true).secure(true).path("/").maxAge(refreshTokenExpiry).build();
+                .httpOnly(true).secure(true).path("/").maxAge(jwtService.getRefreshTokenExpiry()).build();
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(resp);
     }
-
 
     @GetMapping("/refresh-token")
     public ResponseEntity<ResLoginDTO> refreshToken(@CookieValue("refresh_token") String token) {

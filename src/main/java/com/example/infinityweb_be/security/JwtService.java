@@ -1,5 +1,6 @@
 package com.example.infinityweb_be.security;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +22,11 @@ public class JwtService {
     @Value("${assigment_java6.jwt.access-token-validity-in-seconds:900}") // mặc định 15 phút
     private long accessTokenExpiry;
 
+    /**
+     * -- GETTER --
+     *  Lấy thời gian hết hạn của refresh token (giây).
+     */
+    @Getter
     @Value("${assigment_java6.jwt.refresh-token-validity-in-seconds:604800}") // mặc định 7 ngày
     private long refreshTokenExpiry;
 
@@ -99,4 +105,5 @@ public class JwtService {
             return false;
         }
     }
+
 }
