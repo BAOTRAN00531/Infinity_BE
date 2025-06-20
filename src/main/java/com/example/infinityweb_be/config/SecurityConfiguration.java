@@ -3,6 +3,8 @@ package com.example.infinityweb_be.config;
 import com.example.infinityweb_be.config.CustomAuthEntryPoint;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+
+import com.example.infinityweb_be.service.JwtAuthFilter;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +26,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
@@ -36,11 +39,15 @@ import java.util.List;
 @EnableMethodSecurity(securedEnabled = true)
 @Slf4j
 public class SecurityConfiguration {
-
+    private final JwtAuthFilter jwtAuthFilter;
     public static final MacAlgorithm JWT_ALGORITHM = MacAlgorithm.HS256;
 
     @Value("${assigment_java6.jwt.base64-secret}")
     private String jwtSecretKey;
+
+    public SecurityConfiguration(JwtAuthFilter jwtAuthFilter) {
+        this.jwtAuthFilter = jwtAuthFilter;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, @Lazy CustomAuthEntryPoint authEntryPoint) throws Exception {
@@ -50,6 +57,7 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/auth/register", "/auth/login", "/auth/verify-email", "/auth/refresh-token", "/auth/logout","/auth/forgot-password", "/auth/resend-otp",
                                 "/auth/verify-otp", "/auth/reset-password").permitAll()
+                                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
@@ -62,6 +70,7 @@ public class SecurityConfiguration {
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .formLogin(form -> form.disable());
+        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         log.info("✅ Security filter chain configured.");
         return http.build();

@@ -5,6 +5,9 @@ import com.example.infinityweb_be.domain.User;
 import com.example.infinityweb_be.domain.dto.RegisterDTO;
 import com.example.infinityweb_be.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -45,8 +48,13 @@ public class UserService {
         user.setEmail(dto.getEmail());
         user.setUsername(dto.getUsername());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
-        // Tự động set role là "student" nếu không có hoặc để trống
-        user.setRole(dto.getRole() != null && !dto.getRole().isEmpty() ? dto.getRole().toLowerCase() : "student");
+
+        // Chỉ cho phép role "student" hoặc các role khác không phải "ADMIN" khi đăng ký
+        String requestedRole = dto.getRole() != null && !dto.getRole().isEmpty() ? dto.getRole().toLowerCase() : "student";
+        if ("admin".equalsIgnoreCase(requestedRole)) {
+            throw new RuntimeException("Không thể đăng ký với vai trò ADMIN. Vui lòng liên hệ quản trị viên.");
+        }
+        user.setRole(requestedRole);
         user.setActive(false);
         User savedUser = userRepository.save(user);
 
@@ -87,5 +95,17 @@ public class UserService {
         return input.contains("@")
                 ? userRepository.findByEmail(input)
                 : userRepository.findByUsername(input);
+    }
+
+    // Phương thức phụ (tùy chọn) để admin tạo tài khoản khác
+    public User createUserByAdmin(User user, String role) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
+            throw new RuntimeException("Chỉ admin mới có quyền tạo tài khoản.");
+        }
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setRole(role.toLowerCase()); // Cho phép set "ADMIN" nếu cần
+        user.setActive(true); // Admin có thể kích hoạt ngay
+        return userRepository.save(user);
     }
 }
