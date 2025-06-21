@@ -45,11 +45,15 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
     // Config direct to inject css in .html
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/css/**").addResourceLocations("/resources/css");
-        registry
-                .addResourceHandler("/uploads/**")
-                .addResourceLocations("file:uploads/");
+        // Cấu hình cho CSS (nếu cần)
+        registry.addResourceHandler("/css/**")
+                .addResourceLocations("classpath:/static/css/");
+
+        // Cấu hình cho thư mục uploads nằm ngoài src/
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations("file:" + System.getProperty("user.dir") + "/uploads/");
     }
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(sessionContextInterceptor);

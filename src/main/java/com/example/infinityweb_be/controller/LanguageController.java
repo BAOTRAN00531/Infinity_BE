@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.persistence.EntityNotFoundException;
+
 
 import java.util.List;
 
@@ -95,15 +97,20 @@ public class LanguageController {
         }
     }
 
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteLanguage(@PathVariable Integer id) {
+    public ResponseEntity<?> deleteLanguage(@PathVariable Integer id) {
         try {
             languageService.deleteLanguage(id);
             return ResponseEntity.ok().build();
+        } catch (EntityNotFoundException e) {
+            log.warn("Language not found: {}", id);
+            return ResponseEntity.status(404).body("Language not found");
         } catch (RuntimeException e) {
             log.error("Failed to delete language", e);
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(409).body("Cannot delete language: It is in use.");
         }
     }
+
 }
