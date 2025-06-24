@@ -24,4 +24,5 @@ public class Language {
 
     @Column(nullable = true)
     private String popularity;
+
 }

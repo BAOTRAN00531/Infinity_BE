@@ -1,17 +1,32 @@
 package com.example.infinityweb_be.service;
 
 import com.example.infinityweb_be.domain.Language;
+import com.example.infinityweb_be.domain.dto.LanguageWithCourseCountDTO;
 import com.example.infinityweb_be.repository.LanguageRepository;
+import com.example.infinityweb_be.repository.CourseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class LanguageService {
     @Autowired
     private LanguageRepository languageRepository;
+
+    @Autowired
+    private CourseRepository courseRepository;
+
+    public LanguageService(LanguageRepository languageRepository) {
+        this.languageRepository = languageRepository;
+    }
+
+    public List<LanguageWithCourseCountDTO> getLanguagesWithCourseCount() {
+        return languageRepository.findAllWithCourseCount();
+    }
+
 
     public List<Language> getAllLanguages() {
         return languageRepository.findAll();

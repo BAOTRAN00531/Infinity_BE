@@ -17,6 +17,7 @@ public class LearningModule {
     private Integer id;
 
     private String name;
+
     private String description;
 
     @Column(name = "[order]") // fix reserved keyword
