@@ -21,12 +21,12 @@ public class AdminLessonController {
     private final UserRepository userRepository;
 
     // GET /api/lessons?moduleId=...
-    @GetMapping
-    public List<LessonDto> getByModuleId(@RequestParam Integer moduleId) {
-        return lessonService.getByModuleId(moduleId).stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
-    }
+//    @GetMapping
+//    public List<LessonDto> getByModuleId(@RequestParam Integer moduleId) {
+//        return lessonService.getByModuleId(moduleId).stream()
+//                .map(this::toDto)
+//                .collect(Collectors.toList());
+//    }
 
     // GET /api/lessons/{id}
     @GetMapping("/{id}")
@@ -34,6 +34,30 @@ public class AdminLessonController {
         Lesson lesson = lessonService.findById(id);
         return toDto(lesson);
     }
+
+    @GetMapping
+    public List<LessonDto> listLessons(@RequestParam(required = false) Integer moduleId) {
+        List<Lesson> lessons;
+        if (moduleId != null && moduleId > 0) {
+            lessons = lessonService.getByModuleId(moduleId);
+        } else {
+            lessons = lessonService.getAllLessons();
+        }
+        return lessons.stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+
+
+
+
+
+
+
+
+
+
 
     // POST /api/lessons
     @PostMapping
