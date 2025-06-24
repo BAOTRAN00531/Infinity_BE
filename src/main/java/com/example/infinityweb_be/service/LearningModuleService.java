@@ -6,6 +6,7 @@ import com.example.infinityweb_be.domain.User;
 import com.example.infinityweb_be.domain.dto.LearningModuleDto;
 import com.example.infinityweb_be.repository.CourseRepository;
 import com.example.infinityweb_be.repository.LearningModuleRepository;
+import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -23,6 +24,7 @@ public class LearningModuleService {
 
     private final LearningModuleRepository moduleRepository;
     private final CourseRepository courseRepository;
+    private final LessonRepository lessonRepository;
     private final UserRepository userRepository;
 
     @PersistenceContext
@@ -114,6 +116,7 @@ public class LearningModuleService {
 
     // === CHUYỂN ENTITY → DTO ===
     public LearningModuleDto toDto(LearningModule module) {
+        long count = lessonRepository.countByModuleId(module.getId());
         return new LearningModuleDto(
                 module.getId(),
                 module.getName(),                // sẽ là title trong DTO
@@ -123,8 +126,7 @@ public class LearningModuleService {
                 module.getOrder(),
                 module.getDuration(),
                 module.getStatus(),
-                // nếu DTO có partsCount, tính ở đây (ví dụ module.getParts().size())
-                0
+                count
         );
     }
 

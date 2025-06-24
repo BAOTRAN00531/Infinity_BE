@@ -7,4 +7,7 @@ import java.util.List;
 
 public interface LessonRepository extends JpaRepository<Lesson, Integer> {
     List<Lesson> findByModuleId(Integer moduleId);
+
+    long countByModuleId(Integer moduleId);
+
 }
