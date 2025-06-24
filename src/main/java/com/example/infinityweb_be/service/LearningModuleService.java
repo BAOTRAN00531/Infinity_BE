@@ -110,13 +110,17 @@ public class LearningModuleService {
         return moduleRepository.findByCourseId(courseId);
     }
 
-    public void delete(Integer id) {
-        moduleRepository.deleteById(id);
+    @Transactional
+    public void delete(Integer moduleId) {
+        // 1. Xoá hết lessons liên quan
+        lessonRepository.deleteByModule_Id(moduleId);
+        // 2. Xoá module
+        moduleRepository.deleteById(moduleId);
     }
 
     // === CHUYỂN ENTITY → DTO ===
     public LearningModuleDto toDto(LearningModule module) {
-        long count = lessonRepository.countByModuleId(module.getId());
+        long count = lessonRepository.countByModule_Id(module.getId());
         return new LearningModuleDto(
                 module.getId(),
                 module.getName(),                // sẽ là title trong DTO

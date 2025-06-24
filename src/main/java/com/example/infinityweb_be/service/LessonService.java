@@ -29,29 +29,17 @@ public class LessonService {
     @PersistenceContext
     private EntityManager entityManager;
 
-//    @Transactional
-//    public Lesson create(Lesson lesson, int adminId) {
-//        setSessionContext(adminId);
-//        lesson.setCreatedAt(LocalDateTime.now());
-//        lesson.setCreatedBy(userRepository.findById(adminId).orElseThrow());
-//        return lessonRepository.save(lesson);
-//    }
-//
-//    @Transactional
-//    public Lesson update(Integer id, Lesson newData, int adminId) {
-//        setSessionContext(adminId);
-//        Lesson lesson = lessonRepository.findById(id).orElseThrow();
-//        lesson.setName(newData.getName());
-//        lesson.setDescription(newData.getDescription());
-//        lesson.setModule(newData.getModule());
-//        lesson.setUpdatedBy(userRepository.findById(adminId).orElseThrow());
-//        lesson.setUpdatedAt(LocalDateTime.now());
-//        return lessonRepository.save(lesson);
-//    }
 
     public List<Lesson> getByModuleId(Integer moduleId) {
-        return lessonRepository.findByModuleId(moduleId);
+        return lessonRepository.findByModule_Id(moduleId);
     }
+
+    public List<LessonDto> getAllDto() {
+        return lessonRepository.findAll().stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
 
     public void delete(Integer id) {
         lessonRepository.deleteById(id);
@@ -91,28 +79,35 @@ public class LessonService {
 
     @Transactional
     public Lesson createFromDto(LessonDto dto, int adminId) {
-        // Thiết lập admin_id vào session context cho trigger
         setSessionContext(adminId);
 
         Lesson l = new Lesson();
         l.setName(dto.getName());
         l.setDescription(dto.getDescription());
         l.setContent(dto.getContent());
-
-        // Map các trường mới
         l.setType(dto.getType());
-        l.setOrder(dto.getOrder() != null ? dto.getOrder() : 1);
         l.setDuration(dto.getDuration());
         l.setStatus(dto.getStatus());
 
-        // Quan hệ và audit
+        // ==== Tính order tự động ====
+        if (dto.getOrder() != null) {
+            // Nếu Frontend đã gửi lên thứ tự, dùng luôn
+            l.setOrder(dto.getOrder());
+        } else {
+            // Ngược lại: hỏi DB lấy max(order) của module rồi +1
+            int nextOrder = lessonRepository
+                    .findMaxOrderByModule_Id(dto.getModuleId())  // trả về 0 nếu chưa có bài nào
+                    + 1;
+            l.setOrder(nextOrder);
+        }
+        // =============================
+
         l.setModule(moduleRepository.findById(dto.getModuleId())
                 .orElseThrow(() -> new RuntimeException("Module not found")));
         User admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new RuntimeException("Admin not found"));
         l.setCreatedBy(admin);
         l.setCreatedAt(LocalDateTime.now());
-        // updatedBy/updatedAt giữ null cho create
 
         return lessonRepository.save(l);
     }
@@ -145,4 +140,7 @@ public class LessonService {
     }
 
 
+    public List<Lesson> getAllLessons() {
+        return lessonRepository.findAll();
+    }
 }
