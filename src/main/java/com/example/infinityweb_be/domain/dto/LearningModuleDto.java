@@ -16,7 +16,7 @@ public class LearningModuleDto {
     private Integer order;
     private String duration;
     private String status;
-    private Integer partsCount = 0; // Tạm thời mặc định
+    private long partsCount;
 
     public LearningModuleDto(Integer id, String title, String description, Integer courseId, String courseName,
                              Integer order, String duration, String status) {
