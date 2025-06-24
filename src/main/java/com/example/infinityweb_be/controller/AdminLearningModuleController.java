@@ -1,7 +1,5 @@
 package com.example.infinityweb_be.controller;
 
-import com.example.infinityweb_be.domain.LearningModule;
-import com.example.infinityweb_be.domain.dto.LearningModuleDto;
 import com.example.infinityweb_be.domain.dto.LearningModuleDto;
 import com.example.infinityweb_be.repository.UserRepository;
 import com.example.infinityweb_be.service.LearningModuleService;
@@ -15,11 +13,11 @@ import java.util.List;
 @RequestMapping("/api/modules")
 @RequiredArgsConstructor
 public class AdminLearningModuleController {
-    private  LearningModuleDto learningModuleDto;
+
     private final LearningModuleService moduleService;
     private final UserRepository userRepository;
 
-    // ✅ Lấy tất cả hoặc theo courseId nếu có
+    // Lấy tất cả modules hoặc theo courseId (đã trả về DTO)
     @GetMapping
     public List<LearningModuleDto> getModules(@RequestParam(required = false) Integer courseId) {
         if (courseId != null) {
@@ -28,20 +26,31 @@ public class AdminLearningModuleController {
         return moduleService.getAllDto();
     }
 
+    // Tạo mới module: nhận DTO, trả về DTO
     @PostMapping
-    public LearningModule create(@RequestBody LearningModule module, JwtAuthenticationToken token) {
+    public LearningModuleDto create(@RequestBody LearningModuleDto dto,
+                                    JwtAuthenticationToken token) {
+        // Lấy adminId từ token
         String email = token.getName();
-        int adminId = userRepository.findByEmail(email).orElseThrow().getId();
-        return moduleService.create(module, adminId);
+        int adminId = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"))
+                .getId();
+
+        // moduleService.createDto sẽ map DTO → entity, lưu, rồi map entity → DTO
+        return moduleService.createDto(dto, adminId);
     }
 
+    // Cập nhật module theo id
     @PutMapping("/{id}")
-    public LearningModule update(@PathVariable Integer id,
-                                 @RequestBody LearningModule module,
-                                 JwtAuthenticationToken token) {
+    public LearningModuleDto update(@PathVariable Integer id,
+                                    @RequestBody LearningModuleDto dto,
+                                    JwtAuthenticationToken token) {
         String email = token.getName();
-        int adminId = userRepository.findByEmail(email).orElseThrow().getId();
-        return moduleService.update(id, module, adminId);
+        int adminId = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"))
+                .getId();
+
+        return moduleService.updateDto(id, dto, adminId);
     }
 
     @DeleteMapping("/{id}")

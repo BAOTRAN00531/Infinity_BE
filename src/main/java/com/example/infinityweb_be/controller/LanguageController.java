@@ -1,6 +1,7 @@
 package com.example.infinityweb_be.controller;
 
 import com.example.infinityweb_be.domain.Language;
+import com.example.infinityweb_be.domain.dto.LanguageWithCourseCountDTO;
 import com.example.infinityweb_be.service.FileStorageService;
 import com.example.infinityweb_be.service.LanguageService;
 import jakarta.annotation.Resource;
@@ -24,6 +25,12 @@ public class LanguageController {
 
     @Resource
     private FileStorageService fileStorageService;
+
+
+    @GetMapping("/with-course-count")
+    public ResponseEntity<List<LanguageWithCourseCountDTO>> getLanguagesWithCourseCount() {
+        return ResponseEntity.ok(languageService.getLanguagesWithCourseCount());
+    }
 
     @GetMapping
     public List<Language> getAllLanguages() {

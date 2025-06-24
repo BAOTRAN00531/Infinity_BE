@@ -1,9 +1,15 @@
 package com.example.infinityweb_be.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "Courses")
@@ -36,4 +42,24 @@ public class Course {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+
+
+    // ——————————————
+    // Thiết lập quan hệ 1−n tới LearningModule
+    @OneToMany(mappedBy = "course", fetch = FetchType.LAZY)
+    @JsonIgnore                        // tránh infinite recursion khi JSON
+    @EqualsAndHashCode.Exclude        // tránh vòng lặp trong equals/hashCode
+    @ToString.Exclude                 // tránh vòng lặp trong toString
+    private List<LearningModule> modules = new ArrayList<>();
+
+    /**
+     * Jackson sẽ gọi getter này và xuất vào JSON field "modulesCount"
+     */
+    @JsonProperty("modulesCount")
+    @Transient
+    public int getModulesCount() {
+        return (modules == null ? 0 : modules.size());
+    }
 }
+

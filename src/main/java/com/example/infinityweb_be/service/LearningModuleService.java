@@ -28,27 +28,80 @@ public class LearningModuleService {
     @PersistenceContext
     private EntityManager entityManager;
 
-    @Transactional
-    public LearningModule create(LearningModule module, int adminId) {
-        setSessionContext(adminId);
-        module.setCreatedAt(LocalDateTime.now());
-        module.setCreatedBy(userRepository.findById(adminId).orElseThrow());
-        return moduleRepository.save(module);
+    private void setSessionContext(int userId) {
+        entityManager.createNativeQuery("EXEC sp_set_session_context 'user_id', :userId")
+                .setParameter("userId", userId)
+                .executeUpdate();
     }
 
+    // === CREATE DTO ===
     @Transactional
-    public LearningModule update(Integer id, LearningModule newData, int adminId) {
+    public LearningModuleDto createDto(LearningModuleDto dto, int adminId) {
         setSessionContext(adminId);
-        LearningModule module = moduleRepository.findById(id).orElseThrow();
-        module.setName(newData.getName());
-        module.setDescription(newData.getDescription());
-        module.setCourse(newData.getCourse());
-        module.setOrder(newData.getOrder());
-        module.setDuration(newData.getDuration());
-        module.setStatus(newData.getStatus());
-        module.setUpdatedBy(userRepository.findById(adminId).orElseThrow());
+
+        // Map DTO → Entity
+        LearningModule module = new LearningModule();
+        module.setName(dto.getTitle());
+        module.setDescription(dto.getDescription());
+        module.setOrder(dto.getOrder());
+        module.setDuration(dto.getDuration());
+        module.setStatus(dto.getStatus());
+
+        // Gán Course nếu có
+        if (dto.getCourseId() != null) {
+            Course course = courseRepository.findById(dto.getCourseId())
+                    .orElseThrow(() -> new RuntimeException("Course not found: " + dto.getCourseId()));
+            module.setCourse(course);
+        }
+
+        // Gán người tạo và thời gian
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + adminId));
+        module.setCreatedBy(admin);
+        module.setCreatedAt(LocalDateTime.now());
+
+        // Lưu và trả về DTO
+        LearningModule saved = moduleRepository.save(module);
+        return toDto(saved);
+    }
+
+    // === UPDATE DTO ===
+    @Transactional
+    public LearningModuleDto updateDto(Integer id, LearningModuleDto dto, int adminId) {
+        setSessionContext(adminId);
+
+        LearningModule module = moduleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Module not found: " + id));
+
+        // Cập nhật fields từ DTO
+        module.setName(dto.getTitle());
+        module.setDescription(dto.getDescription());
+        module.setOrder(dto.getOrder());
+        module.setDuration(dto.getDuration());
+        module.setStatus(dto.getStatus());
+
+        // Cập nhật Course nếu client gửi courseId, hoặc clear nếu null
+        if (dto.getCourseId() != null) {
+            Course course = courseRepository.findById(dto.getCourseId())
+                    .orElseThrow(() -> new RuntimeException("Course not found: " + dto.getCourseId()));
+            module.setCourse(course);
+        } else {
+            module.setCourse(null);
+        }
+
+        // Gán người sửa và thời gian
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + adminId));
+        module.setUpdatedBy(admin);
         module.setUpdatedAt(LocalDateTime.now());
-        return moduleRepository.save(module);
+
+        LearningModule updated = moduleRepository.save(module);
+        return toDto(updated);
+    }
+
+    // === GET & DELETE còn dùng entity nếu cần ===
+    public List<LearningModule> getAll() {
+        return moduleRepository.findAll();
     }
 
     public List<LearningModule> getByCourseId(Integer courseId) {
@@ -59,24 +112,19 @@ public class LearningModuleService {
         moduleRepository.deleteById(id);
     }
 
-    private void setSessionContext(int userId) {
-        entityManager.createNativeQuery("EXEC sp_set_session_context 'user_id', :userId")
-                .setParameter("userId", userId)
-                .executeUpdate();
-    }
-    public List<LearningModule> getAll() {
-        return moduleRepository.findAll();
-    }
+    // === CHUYỂN ENTITY → DTO ===
     public LearningModuleDto toDto(LearningModule module) {
         return new LearningModuleDto(
                 module.getId(),
-                module.getName(),
+                module.getName(),                // sẽ là title trong DTO
                 module.getDescription(),
                 module.getCourse() != null ? module.getCourse().getId() : null,
                 module.getCourse() != null ? module.getCourse().getName() : null,
                 module.getOrder(),
                 module.getDuration(),
-                module.getStatus()
+                module.getStatus(),
+                // nếu DTO có partsCount, tính ở đây (ví dụ module.getParts().size())
+                0
         );
     }
 

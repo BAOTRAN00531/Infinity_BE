@@ -58,6 +58,9 @@ public class SecurityConfiguration {
                         .requestMatchers("/", "/auth/register", "/auth/login", "/auth/verify-email", "/auth/refresh-token", "/auth/logout","/auth/forgot-password", "/auth/resend-otp",
                                 "/auth/verify-otp", "/auth/reset-password").permitAll()
                                  .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                                 .requestMatchers("/uploads/**").permitAll() // ✅ Cho phép ảnh public
+
+
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2

@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface LearningModuleRepository extends JpaRepository<LearningModule, Integer> {
     List<LearningModule> findByCourseId(Integer courseId);
+
 }
