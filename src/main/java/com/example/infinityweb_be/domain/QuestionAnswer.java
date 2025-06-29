@@ -2,8 +2,12 @@ package com.example.infinityweb_be.domain;
 
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
+
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Entity
 @Table(name = "Question_Answers")
 @Data
@@ -24,4 +28,7 @@ public class QuestionAnswer {
 
     @Column(name = "is_case_sensitive")
     private boolean isCaseSensitive;
+
+
+
 }

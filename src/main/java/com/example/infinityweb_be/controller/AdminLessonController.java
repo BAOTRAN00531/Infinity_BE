@@ -20,14 +20,6 @@ public class AdminLessonController {
     private final LessonService lessonService;
     private final UserRepository userRepository;
 
-    // GET /api/lessons?moduleId=...
-//    @GetMapping
-//    public List<LessonDto> getByModuleId(@RequestParam Integer moduleId) {
-//        return lessonService.getByModuleId(moduleId).stream()
-//                .map(this::toDto)
-//                .collect(Collectors.toList());
-//    }
-
     // GET /api/lessons/{id}
     @GetMapping("/{id}")
     public LessonDto getById(@PathVariable Integer id) {
@@ -47,17 +39,6 @@ public class AdminLessonController {
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
-
-
-
-
-
-
-
-
-
-
-
 
     // POST /api/lessons
     @PostMapping
@@ -93,17 +74,15 @@ public class AdminLessonController {
                 lesson.getId(),
                 lesson.getName(),
                 lesson.getDescription(),
-                lesson.getModule().getId(),
-                lesson.getModule().getName(),
                 lesson.getContent(),
                 lesson.getType(),
-                lesson.getOrder(),
+                lesson.getOrderIndex(),             // <-- dùng getOrderIndex()
                 lesson.getDuration(),
                 lesson.getStatus(),
-                // Lấy id thay vì User object
+                lesson.getModule().getId(),
+                lesson.getModule().getName(),
                 lesson.getCreatedBy().getId(),
                 lesson.getCreatedAt(),
-                // updatedBy có thể null nếu chưa cập nhật
                 lesson.getUpdatedBy() != null ? lesson.getUpdatedBy().getId() : null,
                 lesson.getUpdatedAt()
         );

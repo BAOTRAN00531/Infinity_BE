@@ -1,4 +1,4 @@
-package com.example.infinityweb_be.service;
+package com.example.infinityweb_be.service.question;
 
 import com.example.infinityweb_be.domain.QuestionType;
 import com.example.infinityweb_be.repository.QuestionTypeRepository;

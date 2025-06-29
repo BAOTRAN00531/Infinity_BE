@@ -1,3 +1,4 @@
+// LessonService.java (using orderIndex)
 package com.example.infinityweb_be.service;
 
 import com.example.infinityweb_be.domain.LearningModule;
@@ -13,15 +14,14 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class LessonService {
-
     private final LessonRepository lessonRepository;
     private final LearningModuleRepository moduleRepository;
     private final UserRepository userRepository;
@@ -29,118 +29,101 @@ public class LessonService {
     @PersistenceContext
     private EntityManager entityManager;
 
-
-    public List<Lesson> getByModuleId(Integer moduleId) {
-        return lessonRepository.findByModule_Id(moduleId);
-    }
-
-    public List<LessonDto> getAllDto() {
-        return lessonRepository.findAll().stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
-    }
-
-
-    public void delete(Integer id) {
-        lessonRepository.deleteById(id);
-    }
-
     private void setSessionContext(int userId) {
         entityManager.createNativeQuery("EXEC sp_set_session_context 'user_id', :userId")
                 .setParameter("userId", userId)
                 .executeUpdate();
     }
 
-
-
-    // Mapping trong Service
-    public LessonDto toDto(Lesson lesson) {
-        LessonDto dto = new LessonDto();
-        dto.setId(lesson.getId());
-        dto.setName(lesson.getName());
-        dto.setDescription(lesson.getDescription());
-        dto.setModuleId(lesson.getModule().getId());
-        dto.setModuleName(lesson.getModule().getName());
-        return dto;
-    }
-
-    public List<LessonDto> getByModuleIdDto(Integer moduleId) {
-        return getByModuleId(moduleId)
-                .stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
-    }
-
-
     public Lesson findById(int id) {
         return lessonRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Lesson not found with id " + id));
     }
 
-    @Transactional
-    public Lesson createFromDto(LessonDto dto, int adminId) {
-        setSessionContext(adminId);
-
-        Lesson l = new Lesson();
-        l.setName(dto.getName());
-        l.setDescription(dto.getDescription());
-        l.setContent(dto.getContent());
-        l.setType(dto.getType());
-        l.setDuration(dto.getDuration());
-        l.setStatus(dto.getStatus());
-
-        // ==== Tính order tự động ====
-        if (dto.getOrder() != null) {
-            // Nếu Frontend đã gửi lên thứ tự, dùng luôn
-            l.setOrder(dto.getOrder());
-        } else {
-            // Ngược lại: hỏi DB lấy max(order) của module rồi +1
-            int nextOrder = lessonRepository
-                    .findMaxOrderByModule_Id(dto.getModuleId())  // trả về 0 nếu chưa có bài nào
-                    + 1;
-            l.setOrder(nextOrder);
-        }
-        // =============================
-
-        l.setModule(moduleRepository.findById(dto.getModuleId())
-                .orElseThrow(() -> new RuntimeException("Module not found")));
-        User admin = userRepository.findById(adminId)
-                .orElseThrow(() -> new RuntimeException("Admin not found"));
-        l.setCreatedBy(admin);
-        l.setCreatedAt(LocalDateTime.now());
-
-        return lessonRepository.save(l);
-    }
-
-    @Transactional
-    public Lesson updateFromDto(int id, LessonDto dto, int adminId) {
-        // Thiết lập admin_id vào session context cho trigger
-        setSessionContext(adminId);
-
-        Lesson l = findById(id);
-        l.setName(dto.getName());
-        l.setDescription(dto.getDescription());
-        l.setContent(dto.getContent());
-
-        // Cập nhật các trường mới nếu có
-        if (dto.getType() != null)     l.setType(dto.getType());
-        if (dto.getOrder() != null)    l.setOrder(dto.getOrder());
-        if (dto.getDuration() != null) l.setDuration(dto.getDuration());
-        if (dto.getStatus() != null)   l.setStatus(dto.getStatus());
-
-        // Quan hệ và audit
-        l.setModule(moduleRepository.findById(dto.getModuleId())
-                .orElseThrow(() -> new RuntimeException("Module not found")));
-        User admin = userRepository.findById(adminId)
-                .orElseThrow(() -> new RuntimeException("Admin not found"));
-        l.setUpdatedBy(admin);
-        l.setUpdatedAt(LocalDateTime.now());
-
-        return lessonRepository.save(l);
-    }
-
-
     public List<Lesson> getAllLessons() {
         return lessonRepository.findAll();
+    }
+
+    public List<Lesson> getByModuleId(Integer moduleId) {
+        return lessonRepository.findByModule_Id(moduleId);
+    }
+
+    public List<LessonDto> getAllDto() {
+        return getAllLessons().stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<LessonDto> getByModuleIdDto(Integer moduleId) {
+        return getByModuleId(moduleId).stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    public Lesson createFromDto(LessonDto dto, int adminId) {
+        setSessionContext(adminId);
+        Lesson lesson = new Lesson();
+        lesson.setName(dto.getName());
+        lesson.setDescription(dto.getDescription());
+        lesson.setContent(dto.getContent());
+        lesson.setType(dto.getType());
+        lesson.setDuration(dto.getDuration());
+        lesson.setStatus(dto.getStatus());
+
+        int nextOrder = (dto.getOrderIndex() != null)
+                ? dto.getOrderIndex()
+                : lessonRepository.findMaxOrderByModule_Id(dto.getModuleId()) + 1;
+        lesson.setOrderIndex(nextOrder);
+
+        LearningModule moduleRef = moduleRepository.getReferenceById(dto.getModuleId());
+        lesson.setModule(moduleRef);
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new EntityNotFoundException("Admin not found"));
+        lesson.setCreatedBy(admin);
+        lesson.setCreatedAt(LocalDateTime.now());
+        return lessonRepository.save(lesson);
+    }
+
+    public Lesson updateFromDto(int id, LessonDto dto, int adminId) {
+        setSessionContext(adminId);
+        Lesson lesson = findById(id);
+        if (dto.getName() != null) lesson.setName(dto.getName());
+        if (dto.getDescription() != null) lesson.setDescription(dto.getDescription());
+        if (dto.getContent() != null) lesson.setContent(dto.getContent());
+        if (dto.getType() != null) lesson.setType(dto.getType());
+        if (dto.getOrderIndex() != null) lesson.setOrderIndex(dto.getOrderIndex());
+        if (dto.getDuration() != null) lesson.setDuration(dto.getDuration());
+        if (dto.getStatus() != null) lesson.setStatus(dto.getStatus());
+        if (dto.getModuleId() != null) {
+            lesson.setModule(moduleRepository.getReferenceById(dto.getModuleId()));
+        }
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new EntityNotFoundException("Admin not found"));
+        lesson.setUpdatedBy(admin);
+        lesson.setUpdatedAt(LocalDateTime.now());
+        return lessonRepository.save(lesson);
+    }
+
+    public void delete(int id) {
+        lessonRepository.deleteById(id);
+    }
+
+    private LessonDto toDto(Lesson lesson) {
+        LessonDto dto = new LessonDto();
+        dto.setId(lesson.getId());
+        dto.setName(lesson.getName());
+        dto.setDescription(lesson.getDescription());
+        dto.setContent(lesson.getContent());
+        dto.setType(lesson.getType());
+        dto.setOrderIndex(lesson.getOrderIndex());
+        dto.setDuration(lesson.getDuration());
+        dto.setStatus(lesson.getStatus());
+        dto.setModuleId(lesson.getModule().getId());
+        dto.setModuleName(lesson.getModule().getName());
+        dto.setCreatedBy(lesson.getCreatedBy().getId());
+        dto.setCreatedAt(lesson.getCreatedAt());
+        dto.setUpdatedBy(lesson.getUpdatedBy() != null ? lesson.getUpdatedBy().getId() : null);
+        dto.setUpdatedAt(lesson.getUpdatedAt());
+        return dto;
     }
 }
