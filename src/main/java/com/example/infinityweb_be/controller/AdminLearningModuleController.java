@@ -1,18 +1,21 @@
 package com.example.infinityweb_be.controller;
 
+import com.example.infinityweb_be.common.AuthHelper;
 import com.example.infinityweb_be.domain.dto.LearningModuleDto;
 import com.example.infinityweb_be.repository.UserRepository;
 import com.example.infinityweb_be.service.LearningModuleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/modules")
 @RequiredArgsConstructor
 public class AdminLearningModuleController {
+
+
+    private final AuthHelper authHelper;
 
     private final LearningModuleService moduleService;
     private final UserRepository userRepository;
@@ -32,9 +35,8 @@ public class AdminLearningModuleController {
                                     JwtAuthenticationToken token) {
         // Lấy adminId từ token
         String email = token.getName();
-        int adminId = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"))
-                .getId();
+        int adminId = authHelper.getCurrentUserId(token);
+
 
         // moduleService.createDto sẽ map DTO → entity, lưu, rồi map entity → DTO
         return moduleService.createDto(dto, adminId);

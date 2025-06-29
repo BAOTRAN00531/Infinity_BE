@@ -1,61 +1,67 @@
+// Lesson.java (Entity mapping for dbo.Lessons) with renamed order -> orderIndex
 package com.example.infinityweb_be.domain;
 
 import jakarta.persistence.*;
-import lombok.Data;
-
+import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "Lessons")
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Lesson {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    // Basic fields
-    @Column(name = "name", nullable = false)
-    private String name;
-
-    @Column(name = "description")
-    private String description;
-
-    @Column(name = "content", columnDefinition = "NVARCHAR(MAX)")
-    private String content;
-
-    // New metadata fields
-    @Column(name = "type", nullable = false)
-    private String type;
-
     /**
-     * Không nên dùng tên Java là 'order' vì có thể gây nhầm
-     * với thứ tự xử lý; nhưng vẫn map vào cột [order] trong DB.
+     * ID-only constructor for reference without full fetch
      */
-    @Column(name = "[order]", nullable = false)
-    private Integer order;
+    public Lesson(Integer id) {
+        this.id = id;
+    }
 
-    @Column(name = "duration")
-    private String duration;
-
-    @Column(name = "status", nullable = false)
-    private String status;
-
-    // Quan hệ
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "module_id", nullable = false)
     private LearningModule module;
+
+    @Column(nullable = false, length = 100)
+    private String name;
+
+    @Column(length = 255)
+    private String description;
+
+    @Column(columnDefinition = "NVARCHAR(MAX)")
+    private String content;
+
+    @Column(name = "type", nullable = false, length = 20)
+    private String type;
+
+    /**
+     * Mapped to column [order] in DB, renamed to avoid reserved keyword
+     */
+    @Column(name = "[order]", nullable = false)
+    private Integer orderIndex;
+
+    @Column(length = 50)
+    private String duration;
+
+    @Column(nullable = false, length = 20)
+    private String status;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
 
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
     private User updatedBy;
-
-    // Timestamps
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;

@@ -3,9 +3,14 @@ package com.example.infinityweb_be.domain;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
-
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Entity
 @Table(name = "Question_Options")
 @Data
@@ -30,4 +35,6 @@ public class QuestionOption {
 
     @Column(name = "image_url")
     private String imageUrl;
+
+
 }

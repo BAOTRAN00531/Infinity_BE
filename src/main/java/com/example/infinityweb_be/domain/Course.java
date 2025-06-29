@@ -1,11 +1,11 @@
+// src/main/java/com/example/infinityweb_be/domain/Course.java
 package com.example.infinityweb_be.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -13,53 +13,63 @@ import java.util.List;
 
 @Entity
 @Table(name = "Courses")
+// Bỏ qua các field của Hibernate proxy khi serialize
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Course {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    public Course(Integer id) { this.id = id; }
+
+    @Column(nullable = false)
     private String name;
+
+    @Column(length = 255)
     private String description;
+
     @Column(name = "level")
-    private String level;@Column(name = "duration")
+    private String level;
+
+    @Column(name = "duration")
     private String duration;
 
     @Column(name = "status")
     private String status;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "language_id")
+    // tránh serialize đối tượng Language proxy
+    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
     private Language language;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
+    @JsonIgnore // bạn thường chỉ cần id/name, không serialize cả User
     private User createdBy;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
+    @JsonIgnore
     private User updatedBy;
 
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-
-
-    // ——————————————
-    // Thiết lập quan hệ 1−n tới LearningModule
     @OneToMany(mappedBy = "course", fetch = FetchType.LAZY)
-    @JsonIgnore                        // tránh infinite recursion khi JSON
-    @EqualsAndHashCode.Exclude        // tránh vòng lặp trong equals/hashCode
-    @ToString.Exclude                 // tránh vòng lặp trong toString
+    @JsonIgnore
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
     private List<LearningModule> modules = new ArrayList<>();
 
-    /**
-     * Jackson sẽ gọi getter này và xuất vào JSON field "modulesCount"
-     */
-    @JsonProperty("modulesCount")
-    @Transient
+    @Transient @JsonProperty("modulesCount")
     public int getModulesCount() {
         return (modules == null ? 0 : modules.size());
     }
 }
-
