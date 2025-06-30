@@ -21,6 +21,17 @@ public interface LessonRepository extends JpaRepository<Lesson, Integer> {
     @Transactional
     @Query("DELETE FROM Lesson l WHERE l.module.id = :moduleId")
     void deleteByModule_Id(@Param("moduleId") Integer moduleId);
+
+
+    // --------- Bổ sung -----------
+
+    boolean existsByModule_IdAndOrderIndex(Integer moduleId, Integer orderIndex);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE Lesson l SET l.orderIndex = l.orderIndex + 1 WHERE l.module.id = :moduleId AND l.orderIndex >= :orderIndex")
+    void incrementOrderIndexFrom(@Param("moduleId") Integer moduleId, @Param("orderIndex") Integer orderIndex);
+
 }
 //package com.example.infinityweb_be.repository;
 //

@@ -22,8 +22,13 @@ public class QuestionResponseDto  {
     MediaDto media;
     List<OptionResponseDto> options;
     List<AnswerResponseDto> answers;
+
     Integer createdBy;
     LocalDateTime createdAt;
     Integer updatedBy;
     LocalDateTime updatedAt;
+
+    private String lessonName;
+    private Integer moduleId;
+    private String moduleName;
 }
