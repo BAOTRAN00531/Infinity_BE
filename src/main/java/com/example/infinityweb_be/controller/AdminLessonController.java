@@ -3,13 +3,17 @@ package com.example.infinityweb_be.controller;
 
 import com.example.infinityweb_be.domain.dto.LessonDto;
 import com.example.infinityweb_be.domain.Lesson;
+import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
 import com.example.infinityweb_be.service.LessonService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -19,6 +23,18 @@ public class AdminLessonController {
 
     private final LessonService lessonService;
     private final UserRepository userRepository;
+
+    @Autowired
+    LessonRepository lessonRepository;
+
+
+    @GetMapping("/max-order")
+    public ResponseEntity<Map<String, Integer>> getMaxOrder(@RequestParam Integer moduleId) {
+        int max = lessonRepository.findMaxOrderByModule_Id(moduleId);
+        return ResponseEntity.ok(Map.of("maxOrder", max));
+    }
+
+
 
     // GET /api/lessons/{id}
     @GetMapping("/{id}")
@@ -59,6 +75,7 @@ public class AdminLessonController {
         Lesson updated = lessonService.updateFromDto(id, dto, adminId);
         return toDto(updated);
     }
+
 
     // DELETE /api/lessons/{id}
     @DeleteMapping("/{id}")

@@ -1,5 +1,8 @@
 package com.example.infinityweb_be.domain.dto;
 
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,7 +10,11 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+
 public class LearningModuleDto {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // hoặc AUTO, tùy DB
+
     private Integer id;
     private String title;
     private String description;
