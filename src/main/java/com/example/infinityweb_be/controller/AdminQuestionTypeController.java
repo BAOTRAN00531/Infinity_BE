@@ -17,7 +17,6 @@ import java.util.List;
 public class AdminQuestionTypeController {
 
     private final QuestionTypeService service;
-
     @GetMapping
     public List<QuestionType> getAll() {
         return service.getAll();
