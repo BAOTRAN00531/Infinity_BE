@@ -1,7 +1,8 @@
-package com.example.infinityweb_be.controller;
+package com.example.infinityweb_be.controller.module;
 
 import com.example.infinityweb_be.common.AuthHelper;
-import com.example.infinityweb_be.domain.dto.LearningModuleDto;
+import com.example.infinityweb_be.domain.dto.modules.LearningModuleDto;
+import com.example.infinityweb_be.domain.dto.modules.LearningModuleRequest;
 import com.example.infinityweb_be.repository.UserRepository;
 import com.example.infinityweb_be.service.LearningModuleService;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +32,7 @@ public class AdminLearningModuleController {
 
     // Tạo mới module: nhận DTO, trả về DTO
     @PostMapping
-    public LearningModuleDto create(@RequestBody LearningModuleDto dto,
+    public LearningModuleDto create(@RequestBody LearningModuleRequest request,
                                     JwtAuthenticationToken token) {
         // Lấy adminId từ token
         String email = token.getName();
@@ -39,20 +40,20 @@ public class AdminLearningModuleController {
 
 
         // moduleService.createDto sẽ map DTO → entity, lưu, rồi map entity → DTO
-        return moduleService.createDto(dto, adminId);
+        return moduleService.createDto(request, adminId);
     }
 
     // Cập nhật module theo id
     @PutMapping("/{id}")
     public LearningModuleDto update(@PathVariable Integer id,
-                                    @RequestBody LearningModuleDto dto,
+                                    @RequestBody LearningModuleRequest request,
                                     JwtAuthenticationToken token) {
         String email = token.getName();
         int adminId = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"))
                 .getId();
 
-        return moduleService.updateDto(id, dto, adminId);
+        return moduleService.updateDto(id, request, adminId);
     }
 
     @DeleteMapping("/{id}")
