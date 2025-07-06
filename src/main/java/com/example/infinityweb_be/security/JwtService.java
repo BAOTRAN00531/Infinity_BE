@@ -1,109 +1,83 @@
 package com.example.infinityweb_be.security;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class JwtService {
 
     private final JwtEncoder jwtEncoder;
     private final JwtDecoder jwtDecoder;
 
-    @Value("${assigment_java6.jwt.access-token-validity-in-seconds:900}") // mặc định 15 phút
-    private long accessTokenExpiry;
-
-    /**
-     * -- GETTER --
-     *  Lấy thời gian hết hạn của refresh token (giây).
-     */
-    @Getter
-    @Value("${assigment_java6.jwt.refresh-token-validity-in-seconds:604800}") // mặc định 7 ngày
+    @Value("${assigment_java6.jwt.refresh-token-validity-in-seconds}")
     private long refreshTokenExpiry;
 
     /**
-     * Sinh Access Token cho user.
+     * Getter để controller gọi được thời gian sống của refresh token
+     */
+    public long getRefreshTokenExpiry() {
+        return refreshTokenExpiry;
+    }
+
+    /**
+     * Sinh access token (mặc định 15 phút)
      */
     public String generateAccessToken(UserDetails userDetails) {
-        return generateToken(userDetails, accessTokenExpiry, "access");
+        return generateToken(userDetails, 15, "access");
     }
 
     /**
-     * Sinh Refresh Token cho user.
+     * Sinh refresh token (dựa trên cấu hình @Value)
      */
     public String generateRefreshToken(UserDetails userDetails) {
-        return generateToken(userDetails, refreshTokenExpiry, "refresh");
+        long minutes = refreshTokenExpiry / 60;
+        return generateToken(userDetails, minutes, "refresh");
     }
 
     /**
-     * Sinh token chung (access hoặc refresh).
+     * Tạo JWT với thời gian sống (phút) và loại token
      */
-    private String generateToken(UserDetails userDetails, long expirySeconds, String tokenType) {
-        try {
-            Instant now = Instant.now();
-            Instant expiry = now.plus(expirySeconds, ChronoUnit.SECONDS);
+    private String generateToken(UserDetails userDetails, long expireMinutes, String tokenType) {
+        Instant now = Instant.now();
 
-            log.info("🔐 Generating {} token for user: {}", tokenType, userDetails.getUsername());
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .subject(userDetails.getUsername())
+                .claim("role", userDetails.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .collect(Collectors.joining(",")))
+                .issuedAt(now)
+                .expiresAt(now.plus(expireMinutes, ChronoUnit.MINUTES))
+                .claim("token_type", tokenType)
+                .build();
 
-            JwtClaimsSet claims = JwtClaimsSet.builder()
-                    .subject(userDetails.getUsername())
-                    .issuedAt(now)
-                    .expiresAt(expiry)
-                    .claim("role", userDetails.getAuthorities().stream()
-                            .findFirst().map(Object::toString).orElse("ROLE_USER"))
-                    .claim("token_type", tokenType)
-                    .build();
-
-            String token = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
-            log.info("✅ {} token generated successfully", tokenType);
-            return token;
-
-        } catch (Exception e) {
-            log.error("❌ Failed to generate {} token: {}", tokenType, e.getMessage(), e);
-            throw new RuntimeException("Failed to generate JWT", e);
-        }
+        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
     }
 
     /**
-     * Kiểm tra token có hết hạn không.
-     */
-    public boolean isTokenExpired(String token) {
-        try {
-            Jwt jwt = jwtDecoder.decode(token);
-            return jwt.getExpiresAt().isBefore(Instant.now());
-        } catch (Exception e) {
-            log.warn("⚠️ Token decode error: {}", e.getMessage());
-            return true;
-        }
-    }
-
-    /**
-     * Lấy username từ token.
+     * Giải mã token và lấy username (subject)
      */
     public String extractUsername(String token) {
         return jwtDecoder.decode(token).getSubject();
     }
 
     /**
-     * Kiểm tra token có hợp lệ với user không.
+     * Xác minh token khớp với userDetails
      */
     public boolean isTokenValid(String token, UserDetails userDetails) {
         try {
-            String username = extractUsername(token);
-            return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
-        } catch (Exception e) {
-            log.error("❌ Token validation failed: {}", e.getMessage());
+            Jwt jwt = jwtDecoder.decode(token);
+            return jwt.getSubject().equals(userDetails.getUsername());
+        } catch (JwtException e) {
             return false;
         }
     }
-
 }
