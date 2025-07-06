@@ -1,18 +1,13 @@
 package com.example.infinityweb_be.config;
 
 import com.example.infinityweb_be.config.CustomAuthEntryPoint;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-
 import com.example.infinityweb_be.service.JwtAuthFilter;
-import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -20,8 +15,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.*;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
@@ -40,31 +34,29 @@ import java.util.List;
 @Slf4j
 public class SecurityConfiguration {
     private final JwtAuthFilter jwtAuthFilter;
-    public static final MacAlgorithm JWT_ALGORITHM = MacAlgorithm.HS256;
+    private final CustomAuthEntryPoint authEntryPoint;
+    private final JwtDecoder jwtDecoder; // Tiêm JwtDecoder từ JwtConfig
 
-    @Value("${assigment_java6.jwt.base64-secret}")
-    private String jwtSecretKey;
-
-    public SecurityConfiguration(JwtAuthFilter jwtAuthFilter) {
+    public SecurityConfiguration(JwtAuthFilter jwtAuthFilter, @Lazy CustomAuthEntryPoint authEntryPoint, @Autowired JwtDecoder jwtDecoder) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.authEntryPoint = authEntryPoint;
+        this.jwtDecoder = jwtDecoder;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, @Lazy CustomAuthEntryPoint authEntryPoint) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .addFilterBefore(corsFilter(), org.springframework.security.web.authentication.logout.LogoutFilter.class) // Đảm bảo CorsFilter chạy trước
+                .addFilterBefore(corsFilter(), org.springframework.security.web.authentication.logout.LogoutFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/auth/register", "/auth/login", "/auth/verify-email", "/auth/refresh-token", "/auth/logout","/auth/forgot-password", "/auth/resend-otp",
-                                "/auth/verify-otp", "/auth/reset-password").permitAll()
-                                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                                 .requestMatchers("/uploads/**").permitAll() // ✅ Cho phép ảnh public
-
-
+                        .requestMatchers("/", "/auth/register", "/auth/login", "/auth/verify-email", "/auth/refresh-token", "/auth/logout", "/auth/forgot-password", "/auth/resend-otp", "/auth/verify-otp", "/auth/reset-password").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/uploads/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(Customizer.withDefaults())
+                        .jwt(jwt -> jwt.decoder(jwtDecoder) // Sử dụng JwtDecoder đã tiêm
+                        )
                         .authenticationEntryPoint(authEntryPoint)
                 )
                 .exceptionHandling(ex -> ex
@@ -83,12 +75,11 @@ public class SecurityConfiguration {
     public CorsFilter corsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
-        // Cập nhật để hỗ trợ cả 3000 và 3001 (nếu cần)
         config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("*"));
         config.setAllowCredentials(true);
-        config.setMaxAge(3600L); // Cache preflight 1 giờ
+        config.setMaxAge(3600L);
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
     }

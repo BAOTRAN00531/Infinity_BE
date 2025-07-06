@@ -8,6 +8,7 @@ import com.example.infinityweb_be.domain.dto.ResLoginDTO;
 import com.example.infinityweb_be.domain.dto.ForgotPasswordDTO;
 import com.example.infinityweb_be.repository.UserRepository;
 import com.example.infinityweb_be.repository.VerificationTokenRepository;
+import com.example.infinityweb_be.security.JwtConfig;
 import com.example.infinityweb_be.security.JwtService;
 import com.example.infinityweb_be.service.UserDetailCustom;
 import com.example.infinityweb_be.service.UserService;
@@ -15,6 +16,7 @@ import com.example.infinityweb_be.service.VerificationTokenService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.mail.SimpleMailMessage;
@@ -30,7 +32,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.security.KeyPair;
+import java.security.interfaces.RSAPublicKey;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
@@ -52,6 +57,17 @@ public class AuthenticationController {
     @Value("${assigment_java6.jwt.refresh-token-validity-in-seconds}")
     private long refreshTokenExpiry;
 
+    private final JwtConfig jwtConfig;
+
+    @GetMapping("/public-key")
+    public Map<String, String> getPublicKey() throws Exception {
+        KeyPair keyPair = jwtConfig.keyPair();
+        RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
+        String publicKeyPem = "-----BEGIN PUBLIC KEY-----\n" +
+                Base64.getEncoder().encodeToString(publicKey.getEncoded()) +
+                "\n-----END PUBLIC KEY-----";
+        return Map.of("publicKey", publicKeyPem);
+    }
 //    @PostMapping("/login")
 //    public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
 //
