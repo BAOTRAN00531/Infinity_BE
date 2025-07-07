@@ -9,26 +9,42 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.jwt.*;
 
+import java.io.InputStream;
+import java.security.KeyFactory;
 import java.security.KeyPair;
-import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.*;
 import java.util.Base64;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Configuration
 public class JwtConfig {
 
-    private final AtomicReference<KeyPair> keyPairHolder = new AtomicReference<>();
-
     @Bean
     public KeyPair keyPair() throws Exception {
-        if (keyPairHolder.get() == null) {
-            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-            keyPairGenerator.initialize(2048);
-            KeyPair keyPair = keyPairGenerator.generateKeyPair();
-            keyPairHolder.set(keyPair);
-            System.out.println("Generated new RSA KeyPair: " + Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded()));
+        InputStream is = getClass().getClassLoader().getResourceAsStream("keys/private.pem"); // ✅ sửa đúng đường dẫn
+        if (is == null) {
+            throw new IllegalArgumentException("Không tìm thấy file private.pem trong thư mục resources/keys");
         }
-        return keyPairHolder.get();
+
+        String pem = new String(is.readAllBytes())
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .replaceAll("\\s+", "");
+
+        byte[] keyBytes = Base64.getDecoder().decode(pem);
+        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        PrivateKey privateKey = kf.generatePrivate(spec);
+
+        RSAPrivateCrtKeySpec privateCrtKeySpec = kf.getKeySpec(privateKey, RSAPrivateCrtKeySpec.class);
+        RSAPublicKeySpec publicKeySpec = new RSAPublicKeySpec(
+                privateCrtKeySpec.getModulus(),
+                privateCrtKeySpec.getPublicExponent()
+        );
+        PublicKey publicKey = kf.generatePublic(publicKeySpec);
+
+        return new KeyPair(publicKey, privateKey);
     }
 
     @Bean
@@ -37,7 +53,7 @@ public class JwtConfig {
                 .privateKey(keyPair.getPrivate())
                 .keyID("rsa-key-id")
                 .build();
-        System.out.println("JWK Source created with Public Key: " + Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded()));
+
         return new ImmutableJWKSet<>(new JWKSet(rsaKey));
     }
 
