@@ -56,19 +56,19 @@ public class AuthenticationController {
     private final PasswordEncoder passwordEncoder;
     @Value("${assigment_java6.jwt.refresh-token-validity-in-seconds}")
     private long refreshTokenExpiry;
-
+    private final KeyPair keyPair;
     private final JwtConfig jwtConfig;
 
     @GetMapping("/public-key")
-    public Map<String, String> getPublicKey() throws Exception {
-        KeyPair keyPair = jwtConfig.keyPair();
+    public Map<String, String> getPublicKey() {
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
         String publicKeyPem = "-----BEGIN PUBLIC KEY-----\n" +
                 Base64.getEncoder().encodeToString(publicKey.getEncoded()) +
                 "\n-----END PUBLIC KEY-----";
         return Map.of("publicKey", publicKeyPem);
     }
-//    @PostMapping("/login")
+
+    //    @PostMapping("/login")
 //    public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
 //
 //        // 1. Xác thực
@@ -143,6 +143,7 @@ public class AuthenticationController {
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(resp);
     }
+
 
     @GetMapping("/refresh-token")
     public ResponseEntity<ResLoginDTO> refreshToken(@CookieValue("refresh_token") String token) {
