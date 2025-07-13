@@ -1,4 +1,4 @@
-// QuestionMapper.java
+// QuestionMapper.javađể yên
 package com.example.infinityweb_be.domain.mapper;
 
 import com.example.infinityweb_be.domain.Question;

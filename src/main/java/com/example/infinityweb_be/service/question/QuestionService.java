@@ -29,10 +29,10 @@ public interface QuestionService {
 //import com.example.infinityweb_be.domain.dto.OptionDto;
 //import com.example.infinityweb_be.domain.dto.QuestionDto;
 //import com.example.infinityweb_be.repository.LessonRepository;
-//import com.example.infinityweb_be.repository.QuestionAnswerRepository;
-//import com.example.infinityweb_be.repository.QuestionOptionRepository;
-//import com.example.infinityweb_be.repository.QuestionRepository;
-//import com.example.infinityweb_be.repository.QuestionTypeRepository;
+//import com.example.infinityweb_be.repository.question.QuestionAnswerRepository;
+//import com.example.infinityweb_be.repository.question.QuestionOptionRepository;
+//import com.example.infinityweb_be.repository.question.QuestionRepository;
+//import com.example.infinityweb_be.repository.question.QuestionTypeRepository;
 //import com.example.infinityweb_be.repository.UserRepository;
 //import jakarta.persistence.EntityManager;
 //import jakarta.persistence.PersistenceContext;

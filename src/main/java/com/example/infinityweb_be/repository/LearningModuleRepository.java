@@ -12,6 +12,7 @@ import java.util.List;
 public interface LearningModuleRepository extends JpaRepository<LearningModule, Integer> {
     List<LearningModule> findByCourseId(Integer courseId);
 
+
     @Query("SELECT MAX(m.order) FROM LearningModule m WHERE m.course.id = :courseId")
     Integer findMaxOrderByCourseId(@Param("courseId") Integer courseId);
 
