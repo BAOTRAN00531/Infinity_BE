@@ -1,5 +1,5 @@
 // QuestionTypeRepository.java
-package com.example.infinityweb_be.repository;
+package com.example.infinityweb_be.repository.question;
 
 import com.example.infinityweb_be.domain.QuestionType;
 import org.springframework.data.jpa.repository.JpaRepository;

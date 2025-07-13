@@ -3,12 +3,11 @@ package com.example.infinityweb_be.service.question;
 import com.example.infinityweb_be.domain.QuestionOption;
 import com.example.infinityweb_be.domain.dto.question.OptionCreateDto;
 import com.example.infinityweb_be.domain.dto.question.OptionResponseDto;
-import com.example.infinityweb_be.repository.QuestionOptionRepository;
-import com.example.infinityweb_be.repository.QuestionRepository;
+import com.example.infinityweb_be.repository.question.QuestionOptionRepository;
+import com.example.infinityweb_be.repository.question.QuestionRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

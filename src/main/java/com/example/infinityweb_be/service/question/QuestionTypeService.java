@@ -1,7 +1,7 @@
 package com.example.infinityweb_be.service.question;
 
 import com.example.infinityweb_be.domain.QuestionType;
-import com.example.infinityweb_be.repository.QuestionTypeRepository;
+import com.example.infinityweb_be.repository.question.QuestionTypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
