@@ -27,7 +27,9 @@ public class LanguageService {
         return languageRepository.findAllWithCourseCount();
     }
 
-
+    public void save(Language language) {
+        languageRepository.save(language);
+    }
     public List<Language> getAllLanguages() {
         return languageRepository.findAll();
     }

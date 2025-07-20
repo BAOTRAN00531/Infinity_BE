@@ -44,23 +44,22 @@ public class LanguageController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Language> createLanguage(
             @RequestParam("code") String code,
             @RequestParam("name") String name,
             @RequestParam("difficulty") String difficulty,
             @RequestParam("popularity") String popularity,
-            @RequestParam("flag") MultipartFile flagFile
+            @RequestParam("flag") String flag // ✅ flag là đường dẫn URL từ API
     ) {
         try {
-            String fileName = fileStorageService.storeFile(flagFile);
             Language language = new Language();
             language.setCode(code);
             language.setName(name);
             language.setDifficulty(difficulty);
             language.setPopularity(popularity);
-            language.setFlag("/uploads/" + fileName);
+            language.setFlag(flag); // ✅ Gán trực tiếp URL, không upload
 
             return ResponseEntity.ok(languageService.createLanguage(language));
         } catch (Exception e) {
