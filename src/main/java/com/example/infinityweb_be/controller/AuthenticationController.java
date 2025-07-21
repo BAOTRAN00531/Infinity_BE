@@ -68,47 +68,7 @@ public class AuthenticationController {
         return Map.of("publicKey", publicKeyPem);
     }
 
-    //    @PostMapping("/login")
-//    public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
-//
-//        // 1. Xác thực
-//        Authentication authentication = authenticationManager.authenticate(
-//                new UsernamePasswordAuthenticationToken(
-//                        loginDTO.getUsername(),      // có thể là username hoặc email
-//                        loginDTO.getPassword())
-//        );
-//
-//        // 2. Lưu vào context
-//        SecurityContextHolder.getContext().setAuthentication(authentication);
-//
-//        // 3. Lấy UserDetails từ Authentication (KHÔNG cast entity!)
-//        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-//
-//        // 4. Lấy entity User để trả về client (nếu cần)
-//        User user = userService.findByEmailOrUsername(loginDTO.getUsername())
-//                .orElseThrow(() -> new RuntimeException("User not found"));
-//
-//        // 5. Sinh JWT
-//        String accessToken  = jwtService.generateAccessToken(userDetails);
-//        String refreshToken = verificationTokenService
-//                .createRefreshToken(user, refreshTokenExpiry)
-//                .getToken();
-//
-//        // 6. Build response
-//        ResLoginDTO.UserLogin userLogin = new ResLoginDTO.UserLogin(
-//                user.getId(), user.getEmail(), user.getUsername());
-//
-//        ResLoginDTO resp = new ResLoginDTO();
-//        resp.setAccess_token(accessToken);
-//        resp.setUserp(userLogin);
-//
-//        ResponseCookie cookie = ResponseCookie.from("refresh_token", refreshToken)
-//                .httpOnly(true).secure(true).path("/").maxAge(refreshTokenExpiry).build();
-//
-//        return ResponseEntity.ok()
-//                .header(HttpHeaders.SET_COOKIE, cookie.toString())
-//                .body(resp);
-//    }
+
     @PostMapping("/login")
     public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
         // 1. Xác thực
@@ -251,11 +211,15 @@ public class AuthenticationController {
     @GetMapping("/verify-email")
     public ResponseEntity<Map<String, Object>> verifyEmail(@RequestParam("token") String token) {
         log.info("Starting verification process for token: {}", token);
-        Optional<VerificationToken> optionalToken = verificationTokenRepository.findByTokenAndType(token, "EMAIL_CONFIRMATION");
+
+        Optional<VerificationToken> optionalToken =
+                verificationTokenRepository.findByTokenAndType(token, "EMAIL_CONFIRMATION");
 
         if (optionalToken.isEmpty()) {
-            log.error("No matching token found in database for token: {}", token);
-            return ResponseEntity.badRequest().body(Map.of("message", "Token không hợp lệ hoặc đã bị sử dụng"));
+            log.error("No matching token found for token: {}", token);
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", "Token không hợp lệ hoặc đã bị sử dụng"
+            ));
         }
 
         VerificationToken vt = optionalToken.get();
@@ -263,15 +227,23 @@ public class AuthenticationController {
 
         if (vt.isConfirmed()) {
             log.warn("Token already confirmed for user: {}", vt.getUser().getEmail());
-            return ResponseEntity.badRequest().body(Map.of("message", "Token đã được xác thực trước đó"));
+            return ResponseEntity.ok(Map.of(
+                    "message", "Token đã được xác thực trước đó",
+                    "redirectTo", "/verify-success"
+            ));
         }
+
+
 
         if (vt.getExpiresAt().isBefore(LocalDateTime.now())) {
             log.error("Token expired - user: {}, expiresAt: {}", vt.getUser().getEmail(), vt.getExpiresAt());
-            return ResponseEntity.badRequest().body(Map.of("message", "Token xác thực đã hết hạn"));
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", "Token xác thực đã hết hạn"
+            ));
         }
 
         User user = vt.getUser();
+
         if (!user.isActive()) {
             user.setActive(true);
             try {
@@ -279,8 +251,9 @@ public class AuthenticationController {
                 log.info("User activated successfully - email: {}, id: {}", savedUser.getEmail(), savedUser.getId());
             } catch (Exception e) {
                 log.error("Failed to save user activation - email: {}, error: {}", user.getEmail(), e.getMessage(), e);
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(Map.of("message", "Lỗi khi kích hoạt tài khoản: " + e.getMessage()));
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                        "message", "Lỗi khi kích hoạt tài khoản: " + e.getMessage()
+                ));
             }
         } else {
             log.info("User already active - email: {}", user.getEmail());
@@ -290,10 +263,13 @@ public class AuthenticationController {
         verificationTokenRepository.save(vt);
         log.info("Token marked as confirmed - user: {}", user.getEmail());
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setLocation(URI.create("http://localhost:3001/verify-success"));
-        return new ResponseEntity<>(Map.of("message", "Xác thực email thành công. Chuyển hướng sau 3 giây..."), headers, HttpStatus.SEE_OTHER);
+        return ResponseEntity.ok(Map.of(
+                "message", "Xác nhận thành công",
+                "redirectTo", "/verify-success"
+        ));
     }
+
+
     @PostMapping("/forgot-password")
     public ResponseEntity<Map<String, Object>> forgotPassword(@RequestBody Map<String, String> request) {
         String email = request.get("email");
