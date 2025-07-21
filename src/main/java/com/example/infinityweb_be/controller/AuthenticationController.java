@@ -297,6 +297,7 @@ public class AuthenticationController {
     @PostMapping("/forgot-password")
     public ResponseEntity<Map<String, Object>> forgotPassword(@RequestBody Map<String, String> request) {
         String email = request.get("email");
+
         Optional<User> optionalUser = userRepository.findByEmail(email);
 
         if (optionalUser.isEmpty()) {
@@ -324,7 +325,16 @@ public class AuthenticationController {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(email);
         message.setSubject("Mã OTP khôi phục mật khẩu");
-        message.setText("Mã OTP của bạn là: " + otp + ". Hiệu lực trong 15 phút.");
+        message.setText(
+                String.format(
+                        "Xin chào %s,\n\nBạn đang yêu cầu lấy lại mật khẩu cho tài khoản của mình.\n" +
+                                "Mã OTP của bạn là: %s\n" +
+                                "Mã này có hiệu lực trong 15 phút.\n\n" +
+                                "Trân trọng.",
+                        user.getUsername(), otp
+                )
+        );
+
         mailSender.send(message);
 
         log.info("OTP sent to {}: {}", email, otp);
