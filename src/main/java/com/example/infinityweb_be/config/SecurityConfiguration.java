@@ -1,6 +1,9 @@
 package com.example.infinityweb_be.config;
 
 import com.example.infinityweb_be.config.CustomAuthEntryPoint;
+
+import com.example.infinityweb_be.security.CustomOAuth2FailureHandler;
+import com.example.infinityweb_be.security.CustomOAuth2SuccessHandler;
 import com.example.infinityweb_be.service.JwtAuthFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,9 +24,11 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
+
 
 import java.util.Arrays;
 import java.util.List;
@@ -37,39 +42,51 @@ public class SecurityConfiguration {
     private final CustomAuthEntryPoint authEntryPoint;
     private final JwtDecoder jwtDecoder; // Tiêm JwtDecoder từ JwtConfig
 
-    public SecurityConfiguration(JwtAuthFilter jwtAuthFilter, @Lazy CustomAuthEntryPoint authEntryPoint, @Autowired JwtDecoder jwtDecoder) {
+    private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
+    private final CustomOAuth2FailureHandler customOAuth2FailureHandler;
+
+    public SecurityConfiguration(JwtAuthFilter jwtAuthFilter, @Lazy CustomAuthEntryPoint authEntryPoint, @Autowired JwtDecoder jwtDecoder, CustomOAuth2SuccessHandler customOAuth2SuccessHandler, CustomOAuth2FailureHandler customOAuth2FailureHandler) {
+
         this.jwtAuthFilter = jwtAuthFilter;
         this.authEntryPoint = authEntryPoint;
         this.jwtDecoder = jwtDecoder;
+        this.customOAuth2SuccessHandler = customOAuth2SuccessHandler;
+        this.customOAuth2FailureHandler = customOAuth2FailureHandler;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .addFilterBefore(corsFilter(), org.springframework.security.web.authentication.logout.LogoutFilter.class)
+                .addFilterBefore(corsFilter(), LogoutFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/auth/register", "/auth/login", "/auth/verify-email", "/auth/refresh-token", "/auth/logout", "/auth/forgot-password", "/auth/resend-otp", "/auth/verify-otp", "/auth/reset-password").permitAll()
+                        .requestMatchers("/", "/auth/**", "/oauth2/**", "/uploads/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/uploads/**").permitAll()
                         .anyRequest().authenticated()
                 )
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler(customOAuth2SuccessHandler)
+                        .failureHandler(customOAuth2FailureHandler)
+                )
+
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.decoder(jwtDecoder) // Sử dụng JwtDecoder đã tiêm
-                        )
+                        .jwt(jwt -> jwt.decoder(jwtDecoder))
                         .authenticationEntryPoint(authEntryPoint)
                 )
+
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authEntryPoint)
                         .accessDeniedHandler(new BearerTokenAccessDeniedHandler())
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .formLogin(form -> form.disable());
+
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         log.info("✅ Security filter chain configured.");
         return http.build();
     }
+
 
     @Bean
     public CorsFilter corsFilter() {
