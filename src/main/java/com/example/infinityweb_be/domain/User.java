@@ -29,6 +29,9 @@ public class User {
     @Column(name = "full_name", length = 100)
     private String fullName;
 
+    @Column(name = "avatar", length = 255)
+    private String avatar;
+
     @Column(nullable = false, length = 20)
     private String role;
 
