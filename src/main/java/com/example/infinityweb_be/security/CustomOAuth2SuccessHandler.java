@@ -54,7 +54,6 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         String header = request.getHeader("Authorization");
         log.info("Authorization header: {}", header);
 
-
         String redirectUrl = UriComponentsBuilder
                 .fromUriString("http://localhost:3000/oauth2/success")
                 .queryParam("token", jwt)
