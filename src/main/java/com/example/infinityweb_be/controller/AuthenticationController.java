@@ -248,6 +248,7 @@ public class AuthenticationController {
             user.setActive(true);
             try {
                 User savedUser = userRepository.save(user);
+                log.info("✅ Saved User: {}", savedUser);
                 log.info("User activated successfully - email: {}, id: {}", savedUser.getEmail(), savedUser.getId());
             } catch (Exception e) {
                 log.error("Failed to save user activation - email: {}, error: {}", user.getEmail(), e.getMessage(), e);

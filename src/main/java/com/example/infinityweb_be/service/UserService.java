@@ -47,6 +47,7 @@ public class UserService {
         User user = new User();
         user.setEmail(dto.getEmail());
         user.setUsername(dto.getUsername());
+        user.setFullName(dto.getFullName());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
 
         // Chỉ cho phép role "student" hoặc các role khác không phải "ADMIN" khi đăng ký
@@ -108,4 +109,30 @@ public class UserService {
         user.setActive(true); // Admin có thể kích hoạt ngay
         return userRepository.save(user);
     }
+
+    //GG FB
+    public User findOrCreateOAuthUser(String email, String name, String avatarUrl) {
+        return userRepository.findByEmail(email).map(user -> {
+            // Nếu avatar cũ khác avatar mới → cập nhật
+            if (!avatarUrl.equals(user.getAvatar())) {
+                user.setAvatar(avatarUrl);
+                userRepository.save(user);
+            }
+            return user;
+        }).orElseGet(() -> {
+            User user = User.builder()
+                    .email(email)
+                    .username(email)
+                    .fullName(name)
+                    .avatar(avatarUrl)
+                    .role("student")
+                    .isActive(true)
+                    .password("google_oauth")
+                    .build();
+            return userRepository.save(user);
+        });
+    }
+
+
+
 }
