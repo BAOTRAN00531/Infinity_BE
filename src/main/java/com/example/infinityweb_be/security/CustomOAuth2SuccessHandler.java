@@ -11,8 +11,11 @@ import org.springframework.security.web.DefaultRedirectStrategy;
 import org.springframework.security.web.RedirectStrategy;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -33,10 +36,10 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         Map<String, Object> attributes = oauthToken.getPrincipal().getAttributes();
 
         String email = (String) attributes.get("email");
+        String name = (String) attributes.get("name");
+        String picture = (String) attributes.get("picture");
 
-
-        log.info("✅ OAuth2 login thành công: {}", email);
-
+        log.info("✅ OAuth2 login thành công: email={}, name={}, avatar={}", email, name, picture);
 
         // tạo UserDetails giả để sinh JWT
         User userDetails = new User(
@@ -52,7 +55,15 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         log.info("Authorization header: {}", header);
 
 
-        String redirectUrl = "http://localhost:3000/oauth2/success?token=" + jwt;
+        String redirectUrl = UriComponentsBuilder
+                .fromUriString("http://localhost:3000/oauth2/success")
+                .queryParam("token", jwt)
+                .queryParam("name", URLEncoder.encode(name, StandardCharsets.UTF_8))
+                .queryParam("avatar", URLEncoder.encode(picture, StandardCharsets.UTF_8))
+                .build()
+                .toUriString();
+
+
 
         redirectStrategy.sendRedirect(request, response, redirectUrl);
     }
