@@ -82,6 +82,15 @@ public class LearningModuleService {
         LearningModule module = moduleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Module not found: " + id));
 
+        // Kiểm tra trạng thái course cha
+        Course course = module.getCourse();
+        if (course != null && "inactive".equalsIgnoreCase(course.getStatus())) {
+            // Nếu course cha đang inactive, không cho phép cập nhật trạng thái module
+            if (req.getStatus() != null && !req.getStatus().equalsIgnoreCase(module.getStatus())) {
+                throw new RuntimeException("Không thể thay đổi trạng thái module khi course cha đang inactive");
+            }
+        }
+
         // Cập nhật fields từ DTO
         module.setName(req.getName());
         module.setDescription(req.getDescription());
@@ -91,9 +100,9 @@ public class LearningModuleService {
 
         // Cập nhật Course nếu client gửi courseId, hoặc clear nếu null
         if (req.getCourseId() != null) {
-            Course course = courseRepository.findById(req.getCourseId())
+            Course newCourse = courseRepository.findById(req.getCourseId())
                     .orElseThrow(() -> new RuntimeException("Course not found: " + req.getCourseId()));
-            module.setCourse(course);
+            module.setCourse(newCourse);
         } else {
             module.setCourse(null);
         }

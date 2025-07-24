@@ -3,6 +3,7 @@ package com.example.infinityweb_be.service;
 import com.example.infinityweb_be.domain.Course;
 import com.example.infinityweb_be.repository.CourseRepository;
 import com.example.infinityweb_be.repository.UserRepository;
+import com.example.infinityweb_be.repository.LearningModuleRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -22,6 +23,7 @@ public class CourseService {
 
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
+    private final LearningModuleRepository learningModuleRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -44,14 +46,21 @@ public class CourseService {
         setSessionContext(adminId);
 
         Course existing = courseRepository.findById(id).orElseThrow();
+        String oldStatus = existing.getStatus();
+        String newStatus = updatedCourse.getStatus();
         existing.setName(updatedCourse.getName());
         existing.setDescription(updatedCourse.getDescription());
         existing.setLanguage(updatedCourse.getLanguage());
         existing.setLevel(updatedCourse.getLevel());           // ⬅️ Bổ sung
         existing.setDuration(updatedCourse.getDuration());     // ⬅️ Bổ sung
-        existing.setStatus(updatedCourse.getStatus());
+        existing.setStatus(newStatus);
         existing.setUpdatedBy(userRepository.findById(adminId).orElseThrow());
         existing.setUpdatedAt(LocalDateTime.now());
+
+        // Nếu chuyển từ active sang inactive thì cập nhật tất cả module thành inactive
+        if ("active".equalsIgnoreCase(oldStatus) && "inactive".equalsIgnoreCase(newStatus)) {
+            learningModuleRepository.updateStatusByCourseId(existing.getId(), "inactive");
+        }
         return courseRepository.save(existing);
     }
 
