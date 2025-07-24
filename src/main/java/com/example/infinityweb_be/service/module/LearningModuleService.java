@@ -1,6 +1,6 @@
 package com.example.infinityweb_be.service;
 
-import com.example.infinityweb_be.domain.Course;
+import com.example.infinityweb_be.domain.course.Course;
 import com.example.infinityweb_be.domain.LearningModule;
 import com.example.infinityweb_be.domain.User;
 import com.example.infinityweb_be.domain.dto.modules.LearningModuleDto;

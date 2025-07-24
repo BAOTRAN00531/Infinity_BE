@@ -1,5 +1,5 @@
 // LessonService.java (using orderIndex)
-package com.example.infinityweb_be.service;
+package com.example.infinityweb_be.service.lesson;
 
 import com.example.infinityweb_be.domain.LearningModule;
 import com.example.infinityweb_be.domain.Lesson;
@@ -8,11 +8,15 @@ import com.example.infinityweb_be.domain.dto.LessonDto;
 import com.example.infinityweb_be.repository.LearningModuleRepository;
 import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
+import com.example.infinityweb_be.repository.order.OrderRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,6 +29,7 @@ public class LessonService {
     private final LessonRepository lessonRepository;
     private final LearningModuleRepository moduleRepository;
     private final UserRepository userRepository;
+    private final OrderRepository orderRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -40,6 +45,20 @@ public class LessonService {
                 .orElseThrow(() -> new EntityNotFoundException("Lesson not found with id " + id));
     }
 
+    public LessonDto getLessonDto(int id, String username) {
+        Lesson lesson = lessonRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Lesson not found with id " + id));
+
+        Integer courseId = lesson.getModule().getCourse().getId();
+
+        if (!isAdmin() && !orderRepository.hasValidOrder(username, courseId)) {
+            throw new AccessDeniedException("Bạn chưa mua khoá học này hoặc đã hết hạn.");
+        }
+
+        return toDto(lesson);
+    }
+
+
     public List<Lesson> getAllLessons() {
         return lessonRepository.findAll();
     }
@@ -48,16 +67,18 @@ public class LessonService {
         return lessonRepository.findByModule_Id(moduleId);
     }
 
-    public List<LessonDto> getAllDto() {
+    public List<LessonDto> getAllDto(String username) {
         return getAllLessons().stream()
+                .filter(lesson -> isAdmin() || hasAccess(username, lesson))
                 .map(this::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
-    public List<LessonDto> getByModuleIdDto(Integer moduleId) {
+    public List<LessonDto> getByModuleIdDto(Integer moduleId, String username) {
         return getByModuleId(moduleId).stream()
+                .filter(lesson -> isAdmin() || hasAccess(username, lesson))
                 .map(this::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public Lesson createFromDto(LessonDto dto, int adminId) {
@@ -106,6 +127,17 @@ public class LessonService {
 
     public void delete(int id) {
         lessonRepository.deleteById(id);
+    }
+
+    private boolean isAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
+
+    private boolean hasAccess(String username, Lesson lesson) {
+        Integer courseId = lesson.getModule().getCourse().getId();
+        return orderRepository.hasValidOrder(username, courseId);
     }
 
     private LessonDto toDto(Lesson lesson) {

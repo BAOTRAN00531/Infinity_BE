@@ -2,6 +2,7 @@
 package com.example.infinityweb_be.service.question;
 
 import com.example.infinityweb_be.domain.*;
+import com.example.infinityweb_be.domain.course.Course;
 import com.example.infinityweb_be.domain.dto.question.*;
 import com.example.infinityweb_be.domain.mapper.QuestionMapper;
 import com.example.infinityweb_be.repository.*;

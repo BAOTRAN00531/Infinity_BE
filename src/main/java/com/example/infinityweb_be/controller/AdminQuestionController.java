@@ -1,13 +1,12 @@
 package com.example.infinityweb_be.controller;
 
 import com.example.infinityweb_be.common.AuthHelper;
-import com.example.infinityweb_be.domain.Lesson;
 import com.example.infinityweb_be.domain.dto.LessonDto;
 import com.example.infinityweb_be.domain.dto.question.QuestionCreateDto;
 import com.example.infinityweb_be.domain.dto.question.QuestionResponseDto;
 import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
-import com.example.infinityweb_be.service.LessonService;
+import com.example.infinityweb_be.service.lesson.LessonService;
 import com.example.infinityweb_be.service.question.QuestionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -39,10 +38,10 @@ public class AdminQuestionController {
         return questionService.getByLessonId(lessonId);
     }
 
-    @GetMapping("/by-module/{moduleId}")
-    public List<LessonDto> getLessonsByModule(@PathVariable Integer moduleId) {
-        return lessonService.getByModuleIdDto(moduleId);
-    }
+//    @GetMapping("/by-module/{moduleId}")
+//    public List<LessonDto> getLessonsByModule(@PathVariable Integer moduleId) {
+//        return lessonService.getByModuleIdDto(moduleId);
+//    }
 
     @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
