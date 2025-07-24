@@ -1,13 +1,15 @@
-package com.example.infinityweb_be.controller;
+package com.example.infinityweb_be.controller.course;
 
-import com.example.infinityweb_be.domain.Course;
 import com.example.infinityweb_be.domain.User;
+import com.example.infinityweb_be.domain.course.Course;
+import com.example.infinityweb_be.domain.dto.CourseDto;
 import com.example.infinityweb_be.repository.UserRepository;
-import com.example.infinityweb_be.service.CourseService;
+import com.example.infinityweb_be.service.course.CourseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController

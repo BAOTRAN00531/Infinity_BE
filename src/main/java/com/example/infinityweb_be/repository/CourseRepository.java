@@ -1,6 +1,6 @@
 package com.example.infinityweb_be.repository;
 
-import com.example.infinityweb_be.domain.Course;
+import com.example.infinityweb_be.domain.course.Course;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,12 +1,16 @@
 // src/main/java/com/example/infinityweb_be/domain/Course.java
-package com.example.infinityweb_be.domain;
+package com.example.infinityweb_be.domain.course;
 
+import com.example.infinityweb_be.domain.Language;
+import com.example.infinityweb_be.domain.LearningModule;
+import com.example.infinityweb_be.domain.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +40,10 @@ public class Course {
 
     @Column(name = "duration")
     private String duration;
+
+    @Column(name = "price")
+    private BigDecimal price;
+
 
     @Column(name = "status")
     private String status;

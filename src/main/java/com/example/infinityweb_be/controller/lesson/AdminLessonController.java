@@ -1,17 +1,18 @@
 // src/main/java/com/example/infinityweb_be/controller/AdminLessonController.java
-package com.example.infinityweb_be.controller;
+package com.example.infinityweb_be.controller.lesson;
 
 import com.example.infinityweb_be.domain.dto.LessonDto;
 import com.example.infinityweb_be.domain.Lesson;
 import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
-import com.example.infinityweb_be.service.LessonService;
+import com.example.infinityweb_be.service.lesson.LessonService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -23,9 +24,7 @@ public class AdminLessonController {
 
     private final LessonService lessonService;
     private final UserRepository userRepository;
-
-    @Autowired
-    LessonRepository lessonRepository;
+    private final LessonRepository lessonRepository;
 
 
     @GetMapping("/max-order")
@@ -33,8 +32,6 @@ public class AdminLessonController {
         int max = lessonRepository.findMaxOrderByModule_Id(moduleId);
         return ResponseEntity.ok(Map.of("maxOrder", max));
     }
-
-
 
     // GET /api/lessons/{id}
     @GetMapping("/{id}")
@@ -44,40 +41,30 @@ public class AdminLessonController {
     }
 
     @GetMapping
-    public List<LessonDto> listLessons(@RequestParam(required = false) Integer moduleId) {
-        List<Lesson> lessons;
-        if (moduleId != null && moduleId > 0) {
-            lessons = lessonService.getByModuleId(moduleId);
-        } else {
-            lessons = lessonService.getAllLessons();
+    public List<LessonDto> listLessons(@RequestParam(required = false) Integer moduleId, Principal principal) {
+        String username = principal.getName();
+        if (moduleId != null) {
+            return lessonService.getByModuleIdDto(moduleId, username);
         }
-        return lessons.stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+        return lessonService.getAllDto(username);
     }
 
     // POST /api/lessons
     @PostMapping
-    public LessonDto create(@RequestBody LessonDto dto, JwtAuthenticationToken token) {
-        String email = token.getName();
-        int adminId = userRepository.findByEmail(email).orElseThrow().getId();
+    public LessonDto create(@RequestBody LessonDto dto, JwtAuthenticationToken auth) {
+        int adminId = getAdminId(auth);
         Lesson created = lessonService.createFromDto(dto, adminId);
         return toDto(created);
     }
 
     // PUT /api/lessons/{id}
     @PutMapping("/{id}")
-    public LessonDto update(@PathVariable Integer id,
-                            @RequestBody LessonDto dto,
-                            JwtAuthenticationToken token) {
-        String email = token.getName();
-        int adminId = userRepository.findByEmail(email).orElseThrow().getId();
+    public LessonDto update(@PathVariable Integer id, @RequestBody LessonDto dto, JwtAuthenticationToken auth) {
+        int adminId = getAdminId(auth);
         Lesson updated = lessonService.updateFromDto(id, dto, adminId);
         return toDto(updated);
     }
 
-
-    // DELETE /api/lessons/{id}
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Integer id) {
         lessonService.delete(id);
@@ -88,22 +75,18 @@ public class AdminLessonController {
 // Sử dụng constructor all-args
     private LessonDto toDto(Lesson lesson) {
         return new LessonDto(
-                lesson.getId(),
-                lesson.getName(),
-                lesson.getDescription(),
-                lesson.getContent(),
-                lesson.getType(),
-                lesson.getOrderIndex(),             // <-- dùng getOrderIndex()
-                lesson.getDuration(),
-                lesson.getStatus(),
-                lesson.getModule().getId(),
-                lesson.getModule().getName(),
-                lesson.getCreatedBy().getId(),
-                lesson.getCreatedAt(),
+                lesson.getId(), lesson.getName(), lesson.getDescription(), lesson.getContent(),
+                lesson.getType(), lesson.getOrderIndex(), lesson.getDuration(), lesson.getStatus(),
+                lesson.getModule().getId(), lesson.getModule().getName(),
+                lesson.getCreatedBy().getId(), lesson.getCreatedAt(),
                 lesson.getUpdatedBy() != null ? lesson.getUpdatedBy().getId() : null,
                 lesson.getUpdatedAt()
         );
     }
 
+    private int getAdminId(JwtAuthenticationToken auth) {
+        String email = auth.getName();
+        return userRepository.findByEmail(email).orElseThrow().getId();
+    }
 
 }

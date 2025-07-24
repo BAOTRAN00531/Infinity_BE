@@ -1,6 +1,7 @@
-package com.example.infinityweb_be.service;
+package com.example.infinityweb_be.service.course;
 
-import com.example.infinityweb_be.domain.Course;
+import com.example.infinityweb_be.domain.course.Course;
+import com.example.infinityweb_be.domain.dto.CourseDto;
 import com.example.infinityweb_be.repository.CourseRepository;
 import com.example.infinityweb_be.repository.UserRepository;
 import com.example.infinityweb_be.repository.LearningModuleRepository;
@@ -15,7 +16,6 @@ import com.example.infinityweb_be.domain.User;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-
 
 @Service
 @RequiredArgsConstructor
@@ -74,4 +74,3 @@ public class CourseService {
                 .executeUpdate();
     }
 }
-

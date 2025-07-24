@@ -1,5 +1,6 @@
 package com.example.infinityweb_be.domain;
 
+import com.example.infinityweb_be.domain.course.Course;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
