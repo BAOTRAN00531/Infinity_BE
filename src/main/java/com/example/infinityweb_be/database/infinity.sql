@@ -5,11 +5,6 @@ CREATE DATABASE InfinityWeb;
 GO
 USE InfinityWeb;
 GO
-
-
-
-
-
 --INSERT INTO dbo.Languages (code, name)
 --VALUES ('vi', N'Tiếng Việt');
 
@@ -327,7 +322,64 @@ CREATE TABLE dbo.Verification_token (
     CONSTRAINT FK_VerificationToken_User FOREIGN KEY (user_id)
         REFERENCES dbo.Users(id) ON DELETE CASCADE
 );
+-- 2.19 Lexicon Units
+CREATE TABLE dbo.Lexicon_Units (
+                                   id INT IDENTITY(1,1) PRIMARY KEY,
+                                   text NVARCHAR(100) NOT NULL,          -- ví dụ: お
+                                   language_id INT NOT NULL,             -- foreign key
+                                   ipa NVARCHAR(100),                    -- phiên âm IPA
+                                   audio_url VARCHAR(255),
+                                   image_url VARCHAR(255),
+                                   meaning_vi NVARCHAR(255),
+                                   part_of_speech NVARCHAR(50),          -- noun, verb...
+                                   created_at DATETIME DEFAULT GETDATE(),
+                                   FOREIGN KEY (language_id) REFERENCES dbo.Languages(id)
+);
+--2.20 Phrases
+CREATE TABLE dbo.Phrases (
+                             id INT IDENTITY(1,1) PRIMARY KEY,
+                             text NVARCHAR(255) NOT NULL,           -- ví dụ: お茶をください
+                             language_id INT NOT NULL,
+                             ipa NVARCHAR(255),
+                             audio_url VARCHAR(255),
+                             image_url VARCHAR(255),
+                             meaning_vi NVARCHAR(255),
+                             created_at DATETIME DEFAULT GETDATE(),
+                             FOREIGN KEY (language_id) REFERENCES dbo.Languages(id)
+);
+--2.21 Phrase_Lexicon_Map
+CREATE TABLE dbo.Phrase_Lexicon_Map (
+                                        phrase_id INT NOT NULL,
+                                        lexicon_id INT NOT NULL,
+    [order] INT NOT NULL,                   -- vị trí trong cụm
+                                        FOREIGN KEY (phrase_id) REFERENCES dbo.Phrases(id),
+                                        FOREIGN KEY (lexicon_id) REFERENCES dbo.Lexicon_Units(id)
+);
 
+-- 2.22. Orders
+CREATE TABLE dbo.Orders (
+                            id             INT            IDENTITY(1,1) PRIMARY KEY,
+                            user_id        INT            NOT NULL,
+                            course_id      INT            NOT NULL,
+                            order_code     VARCHAR(50)    NOT NULL UNIQUE,
+                            order_date     DATETIME       NOT NULL DEFAULT GETDATE(),
+                            payment_method VARCHAR(20)    NOT NULL,
+                            status         VARCHAR(20)    NOT NULL DEFAULT 'PENDING',
+                            total_amount   DECIMAL(18,2)  NOT NULL DEFAULT 0,
+                            expiry_date    DATE           NOT NULL,
+                            FOREIGN KEY (user_id) REFERENCES dbo.Users(id),
+                            FOREIGN KEY (course_id) REFERENCES dbo.Courses(id)
+);
+
+-- 2.23. Order Details
+CREATE TABLE dbo.Order_Details (
+                                   id                 INT            IDENTITY(1,1) PRIMARY KEY,
+                                   order_id           INT            NOT NULL,
+                                   service_name       NVARCHAR(255) NOT NULL,
+                                   service_desc       NVARCHAR(500) NULL,
+                                   price              DECIMAL(18,2) NOT NULL,
+                                   FOREIGN KEY (order_id) REFERENCES dbo.Orders(id)
+);
 --------------------------------------------------------------------------------
 -- 3. DỮ LIỆU MẪU (SAMPLE DATA)
 --------------------------------------------------------------------------------
@@ -364,7 +416,12 @@ VALUES
     ('multiple_choice_multi',  N'Câu hỏi trắc nghiệm - nhiều đáp án đúng', 2, 1, NULL),
     ('reorder_words',          N'Sắp xếp từ thành câu đúng',       3, 0, 0),
     ('text_input',             N'Nhập câu trả lời từ bàn phím',     0, 0, 0);
+-- 3.6. Sample Order
+INSERT INTO dbo.Orders (user_id, course_id, order_code, payment_method, status, expiry_date)
+VALUES (1, 1, 'ORD202507230001', 'VNPAY', 'PAID', DATEADD(YEAR,1,GETDATE()));
 
+INSERT INTO dbo.Order_Details (order_id, service_name, service_desc, price)
+VALUES (1, N'Unlock full khóa học 1 năm', N'Truy cập khoá học trong 1 năm', 1000000);
 --------------------------------------------------------------------------------
 -- 4. TRIGGERS
 --------------------------------------------------------------------------------
