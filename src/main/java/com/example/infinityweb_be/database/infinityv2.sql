@@ -292,18 +292,73 @@ CREATE TABLE dbo.Verification_token
         REFERENCES dbo.Users (id) ON DELETE CASCADE
 )
 GO
-CREATE TABLE orders
+
+-- 2.19 Lexicon Units
+CREATE TABLE dbo.Lexicon_Units
 (
-    id             bigint IDENTITY (1, 1) NOT NULL,
-    order_code     varchar(50)            NOT NULL,
-    user_id        int                    NOT NULL,
-    order_date     datetime,
-    payment_method varchar(20)            NOT NULL,
-    status         varchar(20),
-    total_amount   decimal(18, 0)         NOT NULL,
-    course_id      int                    NOT NULL,
-    expiry_date    date                   NOT NULL,
-    CONSTRAINT pk_orders PRIMARY KEY (id)
+    id             INT IDENTITY (1,1) PRIMARY KEY,
+    text           NVARCHAR(100) NOT NULL, -- ví dụ: お
+    language_id    INT           NOT NULL, -- foreign key
+    ipa            NVARCHAR(100),          -- phiên âm IPA
+    audio_url      VARCHAR(255),
+    image_url      VARCHAR(255),
+    meaning_vi     NVARCHAR(255),
+    part_of_speech NVARCHAR(50),           -- noun, verb...
+    created_at     DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (language_id) REFERENCES dbo.Languages (id)
+)
+GO
+--2.20 Phrases
+CREATE TABLE dbo.Phrases
+(
+    id          INT IDENTITY (1,1) PRIMARY KEY,
+    text        NVARCHAR(255) NOT NULL, -- ví dụ: お茶をください
+    language_id INT           NOT NULL,
+    ipa         NVARCHAR(255),
+    audio_url   VARCHAR(255),
+    image_url   VARCHAR(255),
+    meaning_vi  NVARCHAR(255),
+    created_at  DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (language_id) REFERENCES dbo.Languages (id)
+)
+GO
+--2.21 Phrase_Lexicon_Map
+CREATE TABLE dbo.Phrase_Lexicon_Map
+(
+    phrase_id  INT NOT NULL,
+    lexicon_id INT NOT NULL,
+    [order]    INT NOT NULL, -- vị trí trong cụm
+    FOREIGN KEY (phrase_id) REFERENCES dbo.Phrases (id),
+    FOREIGN KEY (lexicon_id) REFERENCES dbo.Lexicon_Units (id)
+)
+GO
+
+-- 2.22. Orders
+CREATE TABLE dbo.Orders
+(
+    id             INT IDENTITY (1,1) PRIMARY KEY,
+    user_id        INT            NOT NULL,
+    course_id      INT            NOT NULL,
+    order_code     VARCHAR(50)    NOT NULL UNIQUE,
+    order_date     DATETIME       NOT NULL DEFAULT GETDATE(),
+    payment_method VARCHAR(20)    NOT NULL,
+    status         VARCHAR(20)    NOT NULL DEFAULT 'PENDING',
+    total_amount   DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    expiry_date    DATE           NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES dbo.Users (id),
+    FOREIGN KEY (course_id) REFERENCES dbo.Courses (id)
+)
+GO
+
+-- 2.23. Order Details
+CREATE TABLE dbo.Order_Details
+(
+    id           INT IDENTITY (1,1) PRIMARY KEY,
+    order_id     INT            NOT NULL,
+    service_name NVARCHAR(255)  NOT NULL,
+    service_desc NVARCHAR(500)  NULL,
+    price        DECIMAL(18, 2) NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES dbo.Orders (id)
 )
 GO
 
@@ -451,6 +506,15 @@ GO
 INSERT INTO dbo.Question_Answers (question_id, answer_text)
 VALUES (1, N'Hà Nội'),
        (1, N'Ha Noi')
+GO
+
+-- 4.11. Sample Order
+INSERT INTO dbo.Orders (user_id, course_id, order_code, payment_method, status, expiry_date, total_amount)
+VALUES (1, 1, 'ORD202507230001', 'VNPAY', 'PAID', DATEADD(YEAR, 1, GETDATE()), 1000000)
+GO
+
+INSERT INTO dbo.Order_Details (order_id, service_name, service_desc, price)
+VALUES (1, N'Unlock full khóa học 1 năm', N'Truy cập khoá học trong 1 năm', 1000000)
 GO
 
 --------------------------------------------------------------------------------
