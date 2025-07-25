@@ -433,6 +433,12 @@ VALUES ('admin1', 'admin1email1@example.com', N'Tên nào cũng được', 'admi
         '$2a$12$7qNKP7SVXS0.fddyBLqeKuyjU6IS/zv/DFY8nLnciMo/LAzZ9HqJi', 1)
 GO
 
+INSERT INTO dbo.Users
+    (username, email, full_name, role, password, is_active)
+VALUES ('nguyenuser', 'user@example.com', N'Nguyễn User', 'admin',
+        '$2a$10$nQMrCsEcqFuihjTwYb9IWuXWIcCbFWUyBObZxgn9rdzIwV8yDlDZS', 1)
+GO
+
 -- 4.2. Sample Question Types
 INSERT INTO dbo.Question_Types
     (code, description, min_options, min_correct, max_correct)
