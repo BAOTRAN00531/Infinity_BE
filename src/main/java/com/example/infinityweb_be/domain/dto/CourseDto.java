@@ -5,17 +5,35 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
+
+//@Data
+//@Builder
+//@NoArgsConstructor
+//@AllArgsConstructor
+//public class CourseDto {
+//    private Integer id;
+//    private String name;
+//    private String description;
+//    private String language;
+//    private String level;
+//    private String duration;
+//    private String status;
+//}
+
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class CourseDto {
     private Integer id;
     private String name;
     private String description;
-    private String language;
-    private String level;
     private String duration;
+    private String level;
+    private String language;
+    private BigDecimal price;
     private String status;
 }
+

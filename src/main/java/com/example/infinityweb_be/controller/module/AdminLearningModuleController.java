@@ -4,10 +4,13 @@ import com.example.infinityweb_be.common.AuthHelper;
 import com.example.infinityweb_be.domain.dto.modules.LearningModuleDto;
 import com.example.infinityweb_be.domain.dto.modules.LearningModuleRequest;
 import com.example.infinityweb_be.repository.UserRepository;
-import com.example.infinityweb_be.service.LearningModuleService;
+//import com.example.infinityweb_be.service.;
+import com.example.infinityweb_be.service.module.LearningModuleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -23,12 +26,15 @@ public class AdminLearningModuleController {
 
     // Lấy tất cả modules hoặc theo courseId (đã trả về DTO)
     @GetMapping
-    public List<LearningModuleDto> getModules(@RequestParam(required = false) Integer courseId) {
+    public List<LearningModuleDto> getModules(@RequestParam(required = false) Integer courseId,
+                                              Principal principal) {
         if (courseId != null) {
-            return moduleService.getByCourseIdDto(courseId);
+            String username = principal.getName(); // 👈 Lấy username từ người dùng đăng nhập
+            return moduleService.getByCourseIdDto(courseId, username);
         }
         return moduleService.getAllDto();
     }
+
 
     // Tạo mới module: nhận DTO, trả về DTO
     @PostMapping

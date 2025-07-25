@@ -24,6 +24,13 @@ public class AdminCourseController {
         return courseService.getAll();
     }
 
+//    @GetMapping
+//    public List<CourseDto> listCourses() {
+//        return courseService.getAllCourses(); // Không cần login
+//    }
+
+
+
     @PostMapping
     public Course create(@RequestBody Course course,
                          JwtAuthenticationToken auth) {
