@@ -73,4 +73,34 @@ public class CourseService {
                 .setParameter("userId", userId)
                 .executeUpdate();
     }
+
+
+    public List<CourseDto> getAllCourses() {
+        return courseRepository.findAll().stream()
+                .filter(course -> "ACTIVE".equalsIgnoreCase(course.getStatus()))
+                .map(this::toDto)
+                .toList();
+    }
+
+    public CourseDto toDto(Course course) {
+        return new CourseDto(
+                course.getId(),
+                course.getName(),
+                course.getDescription(),
+                course.getDuration(),
+                course.getLevel(),
+                course.getLanguage() != null ? course.getLanguage().getName() : null,
+                course.getPrice(),
+                course.getStatus()
+        );
+    }
+
+
+    public CourseDto getDtoById(int id) {
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Course not found: " + id));
+        return toDto(course);
+    }
+
+
 }

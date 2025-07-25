@@ -92,4 +92,12 @@ public class OrderService {
         );
     }
 
+
+
+    // check hoc vien
+    public boolean hasUserPurchasedCourse(Integer userId, Integer courseId) {
+        return orderRepository.hasValidOrderByUserId(userId, courseId);
+    }
+
+
 }

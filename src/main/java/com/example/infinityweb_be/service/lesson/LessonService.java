@@ -9,6 +9,7 @@ import com.example.infinityweb_be.repository.LearningModuleRepository;
 import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
 import com.example.infinityweb_be.repository.order.OrderRepository;
+import com.example.infinityweb_be.service.order.OrderService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.PersistenceContext;
@@ -19,6 +20,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,6 +32,8 @@ public class LessonService {
     private final LearningModuleRepository moduleRepository;
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
+    private final OrderService orderService;
+
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -80,6 +84,39 @@ public class LessonService {
                 .map(this::toDto)
                 .toList();
     }
+
+    public List<LessonDto> getLessonsByModuleIdForUser(Integer moduleId, String username) {
+        // Lấy user
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        LearningModule module = moduleRepository.findById(moduleId)
+                .orElseThrow(() -> new RuntimeException("Module not found"));
+
+        Integer courseId = module.getCourse().getId();
+        boolean hasAccess = orderService.hasUserPurchasedCourse(user.getId(), courseId);
+
+        List<Lesson> lessons = lessonRepository.findByModule_Id(moduleId);
+
+        if (!hasAccess) {
+            // Chế độ xem thử: chỉ hiện 1 bài học đầu tiên
+            return lessons.stream()
+                    .filter(l -> "ACTIVE".equalsIgnoreCase(l.getStatus()))
+                    .sorted(Comparator.comparing(Lesson::getOrderIndex))
+                    .limit(1)
+                    .map(this::toDto)
+                    .toList();
+        }
+
+        // Trả về đầy đủ nếu đã mua
+        return lessons.stream()
+                .filter(l -> "ACTIVE".equalsIgnoreCase(l.getStatus()))
+                .sorted(Comparator.comparing(Lesson::getOrderIndex))
+                .map(this::toDto)
+                .toList();
+    }
+
+
 
     public Lesson createFromDto(LessonDto dto, int adminId) {
         setSessionContext(adminId);

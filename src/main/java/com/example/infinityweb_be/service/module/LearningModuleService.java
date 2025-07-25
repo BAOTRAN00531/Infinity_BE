@@ -1,14 +1,16 @@
-package com.example.infinityweb_be.service;
+package com.example.infinityweb_be.service.module;
 
 import com.example.infinityweb_be.domain.course.Course;
 import com.example.infinityweb_be.domain.LearningModule;
 import com.example.infinityweb_be.domain.User;
 import com.example.infinityweb_be.domain.dto.modules.LearningModuleDto;
 import com.example.infinityweb_be.domain.dto.modules.LearningModuleRequest;
+import com.example.infinityweb_be.domain.map.LearningModuleMapper;
 import com.example.infinityweb_be.repository.CourseRepository;
 import com.example.infinityweb_be.repository.LearningModuleRepository;
 import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
+import com.example.infinityweb_be.service.order.OrderService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,10 @@ public class LearningModuleService {
     private final CourseRepository courseRepository;
     private final LessonRepository lessonRepository;
     private final UserRepository userRepository;
+
+    private final OrderService orderService; // 👈 thêm dòng này
+    private final LearningModuleMapper moduleMapper; // 👈 thêm nếu dùng mapper
+
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -157,10 +163,36 @@ public class LearningModuleService {
                 .collect(Collectors.toList());
     }
 
-    public List<LearningModuleDto> getByCourseIdDto(Integer courseId) {
-        return moduleRepository.findByCourseId(courseId)
+
+//chjeck
+
+    public List<LearningModuleDto> getByCourseIdDto(Integer courseId, String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        boolean hasAccess = orderService.hasUserPurchasedCourse(user.getId(), courseId);
+
+        List<LearningModule> modules = moduleRepository.findByCourseId(courseId)
                 .stream()
-                .map(this::toDto)
+                .filter(m -> "ACTIVE".equalsIgnoreCase(m.getStatus()))
                 .collect(Collectors.toList());
+
+        if (!hasAccess) {
+            // Trả về module ở chế độ demo (1 module đầu tiên)
+            return modules.stream()
+                    .limit(1)
+                    .map(moduleMapper::toDto)
+                    .toList();
+        }
+
+        // Trả về đầy đủ nếu đã mua
+        return modules.stream()
+                .map(moduleMapper::toDto)
+                .toList();
     }
+
+
+
 }
+
+
