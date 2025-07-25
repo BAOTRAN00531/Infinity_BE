@@ -21,6 +21,9 @@ public class JwtService {
     @Value("${assigment_java6.jwt.refresh-token-validity-in-seconds}")
     private long refreshTokenExpiry;
 
+    @Value("${assigment_java6.jwt.access-token-validity-in-seconds}")
+    private long accessTokenExpiry;
+
     /**
      * Getter để controller gọi được thời gian sống của refresh token
      */
@@ -29,10 +32,11 @@ public class JwtService {
     }
 
     /**
-     * Sinh access token (mặc định 15 phút)
+     * Sinh access token (dựa trên cấu hình @Value)
      */
     public String generateAccessToken(UserDetails userDetails) {
-        return generateToken(userDetails, 15, "access");
+        long minutes = accessTokenExpiry / 60;
+        return generateToken(userDetails, minutes, "access");
     }
 
     /**
