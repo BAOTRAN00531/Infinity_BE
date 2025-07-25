@@ -15,7 +15,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminLearningModuleController {
 
-
     private final AuthHelper authHelper;
 
     private final LearningModuleService moduleService;
