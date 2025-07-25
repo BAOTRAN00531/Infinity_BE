@@ -102,5 +102,9 @@ public class CourseService {
         return toDto(course);
     }
 
+    public List<Course> getCoursesByLanguage(Integer languageId) {
+        return courseRepository.findByLanguageId(languageId);
+    }
+
 
 }

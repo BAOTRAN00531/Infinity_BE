@@ -29,6 +29,10 @@ public class AdminCourseController {
 //        return courseService.getAllCourses(); // Không cần login
 //    }
 
+    @GetMapping("/by-language/{languageId}")
+    public List<Course> getCoursesByLanguage(@PathVariable Integer languageId) {
+        return courseService.getCoursesByLanguage(languageId);
+    }
 
 
     @PostMapping

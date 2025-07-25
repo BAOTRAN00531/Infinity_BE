@@ -11,6 +11,8 @@ import java.util.List;
 public interface CourseRepository extends JpaRepository<Course, Integer> {
     List<Course> findByLanguage_Code(String code);
 
+    List<Course> findByLanguageId(Integer languageId);
+
 
     // chạy count course trong page language
 //    Long countByLanguageId(Integer languageId);
