@@ -2,10 +2,10 @@ package com.example.infinityweb_be.controller;
 
 import com.example.infinityweb_be.domain.User;
 import com.example.infinityweb_be.domain.VerificationToken;
+import com.example.infinityweb_be.domain.dto.ForgotPasswordDTO;
 import com.example.infinityweb_be.domain.dto.LoginDTO;
 import com.example.infinityweb_be.domain.dto.RegisterDTO;
 import com.example.infinityweb_be.domain.dto.ResLoginDTO;
-import com.example.infinityweb_be.domain.dto.ForgotPasswordDTO;
 import com.example.infinityweb_be.repository.UserRepository;
 import com.example.infinityweb_be.repository.VerificationTokenRepository;
 import com.example.infinityweb_be.security.JwtConfig;
@@ -16,9 +16,11 @@ import com.example.infinityweb_be.service.VerificationTokenService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -27,11 +29,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
 import java.security.KeyPair;
 import java.security.interfaces.RSAPublicKey;
 import java.time.LocalDateTime;
@@ -126,7 +126,7 @@ public class AuthenticationController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // User chưa active
         }
 
-        String newAccessToken = jwtService.generateAccessToken((UserDetails) user);
+        String newAccessToken = jwtService.generateAccessToken(new UserDetailCustom(user));
         String newRefreshToken = verificationTokenService.createRefreshToken(user, refreshTokenExpiry).getToken();
 
         ResLoginDTO.UserLogin userLogin = new ResLoginDTO.UserLogin(user.getId(), user.getEmail(), user.getUsername());
@@ -232,7 +232,6 @@ public class AuthenticationController {
                     "redirectTo", "/verify-success"
             ));
         }
-
 
 
         if (vt.getExpiresAt().isBefore(LocalDateTime.now())) {
