@@ -42,6 +42,7 @@ VALUES (
 );
 
 
+
 INSERT INTO dbo.Question_Options (question_id, option_text, is_correct, position)
 VALUES
 (1, N'Hà Nội', 1, 1),
