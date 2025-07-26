@@ -40,16 +40,16 @@ public class LanguageTemplateController {
 
         try {
             WebClient webClient = WebClient.builder()
-                .baseUrl("https://restcountries.com")
-                .defaultHeader("User-Agent", "Mozilla/5.0")
-                .defaultHeader("Accept", "application/json")
-                .build();
+                    .baseUrl("https://restcountries.com")
+                    .defaultHeader("User-Agent", "Mozilla/5.0")
+                    .defaultHeader("Accept", "application/json")
+                    .build();
 
             String response = webClient.get()
-                .uri("/v3.1/all?fields=name,cca2,flags")
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
+                    .uri("/v3.1/all?fields=name,cca2,flags")
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
 
             ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(response);

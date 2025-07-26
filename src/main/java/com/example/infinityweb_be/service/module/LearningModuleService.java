@@ -166,29 +166,11 @@ public class LearningModuleService {
 
 //chjeck
 
-    public List<LearningModuleDto> getByCourseIdDto(Integer courseId, String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        boolean hasAccess = orderService.hasUserPurchasedCourse(user.getId(), courseId);
-
-        List<LearningModule> modules = moduleRepository.findByCourseId(courseId)
+    public List<LearningModuleDto> getByCourseIdDto(Integer courseId) {
+        return moduleRepository.findByCourseId(courseId)
                 .stream()
-                .filter(m -> "ACTIVE".equalsIgnoreCase(m.getStatus()))
+                .map(this::toDto)
                 .collect(Collectors.toList());
-
-        if (!hasAccess) {
-            // Trả về module ở chế độ demo (1 module đầu tiên)
-            return modules.stream()
-                    .limit(1)
-                    .map(moduleMapper::toDto)
-                    .toList();
-        }
-
-        // Trả về đầy đủ nếu đã mua
-        return modules.stream()
-                .map(moduleMapper::toDto)
-                .toList();
     }
 
 

@@ -9,6 +9,7 @@ import com.example.infinityweb_be.repository.LearningModuleRepository;
 import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
 import com.example.infinityweb_be.repository.order.OrderRepository;
+import com.example.infinityweb_be.repository.question.QuestionRepository;
 import com.example.infinityweb_be.service.order.OrderService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
@@ -31,9 +32,7 @@ public class LessonService {
     private final LessonRepository lessonRepository;
     private final LearningModuleRepository moduleRepository;
     private final UserRepository userRepository;
-    private final OrderRepository orderRepository;
-    private final OrderService orderService;
-
+    private final QuestionRepository questionRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -49,20 +48,6 @@ public class LessonService {
                 .orElseThrow(() -> new EntityNotFoundException("Lesson not found with id " + id));
     }
 
-    public LessonDto getLessonDto(int id, String username) {
-        Lesson lesson = lessonRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Lesson not found with id " + id));
-
-        Integer courseId = lesson.getModule().getCourse().getId();
-
-        if (!isAdmin() && !orderRepository.hasValidOrder(username, courseId)) {
-            throw new AccessDeniedException("Bạn chưa mua khoá học này hoặc đã hết hạn.");
-        }
-
-        return toDto(lesson);
-    }
-
-
     public List<Lesson> getAllLessons() {
         return lessonRepository.findAll();
     }
@@ -71,52 +56,17 @@ public class LessonService {
         return lessonRepository.findByModule_Id(moduleId);
     }
 
-    public List<LessonDto> getAllDto(String username) {
+    public List<LessonDto> getAllDto() {
         return getAllLessons().stream()
-                .filter(lesson -> isAdmin() || hasAccess(username, lesson))
                 .map(this::toDto)
-                .toList();
+                .collect(Collectors.toList());
     }
 
-    public List<LessonDto> getByModuleIdDto(Integer moduleId, String username) {
+    public List<LessonDto> getByModuleIdDto(Integer moduleId) {
         return getByModuleId(moduleId).stream()
-                .filter(lesson -> isAdmin() || hasAccess(username, lesson))
                 .map(this::toDto)
-                .toList();
+                .collect(Collectors.toList());
     }
-
-    public List<LessonDto> getLessonsByModuleIdForUser(Integer moduleId, String username) {
-        // Lấy user
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        LearningModule module = moduleRepository.findById(moduleId)
-                .orElseThrow(() -> new RuntimeException("Module not found"));
-
-        Integer courseId = module.getCourse().getId();
-        boolean hasAccess = orderService.hasUserPurchasedCourse(user.getId(), courseId);
-
-        List<Lesson> lessons = lessonRepository.findByModule_Id(moduleId);
-
-        if (!hasAccess) {
-            // Chế độ xem thử: chỉ hiện 1 bài học đầu tiên
-            return lessons.stream()
-                    .filter(l -> "ACTIVE".equalsIgnoreCase(l.getStatus()))
-                    .sorted(Comparator.comparing(Lesson::getOrderIndex))
-                    .limit(1)
-                    .map(this::toDto)
-                    .toList();
-        }
-
-        // Trả về đầy đủ nếu đã mua
-        return lessons.stream()
-                .filter(l -> "ACTIVE".equalsIgnoreCase(l.getStatus()))
-                .sorted(Comparator.comparing(Lesson::getOrderIndex))
-                .map(this::toDto)
-                .toList();
-    }
-
-
 
     public Lesson createFromDto(LessonDto dto, int adminId) {
         setSessionContext(adminId);
@@ -163,18 +113,9 @@ public class LessonService {
     }
 
     public void delete(int id) {
+        questionRepository.deleteByLesson_Id(id);
+
         lessonRepository.deleteById(id);
-    }
-
-    private boolean isAdmin() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-    }
-
-    private boolean hasAccess(String username, Lesson lesson) {
-        Integer courseId = lesson.getModule().getCourse().getId();
-        return orderRepository.hasValidOrder(username, courseId);
     }
 
     private LessonDto toDto(Lesson lesson) {

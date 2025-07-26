@@ -62,23 +62,27 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/auth/**", "/oauth2/**", "/uploads/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // Permit client API
+                        .requestMatchers("/client/api/course/**").permitAll()
+
+                        .requestMatchers("/api/users/email/**").permitAll()
+
+                        // Cái này nên để sau cùng vì nó bắt tất cả /api/**
                         .requestMatchers("/api/**").authenticated()
-                        .anyRequest().permitAll()
+
+                        .anyRequest().authenticated()
                 )
+
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(customOAuth2SuccessHandler)
                         .failureHandler(customOAuth2FailureHandler)
                 )
 
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt
-                                .decoder(jwtDecoder)
-                                .jwtAuthenticationConverter(jwtAuthenticationConverter()) // ✅ BẮT BUỘC PHẢI THÊM
-                        )
+                        .jwt(jwt -> jwt.decoder(jwtDecoder))
                         .authenticationEntryPoint(authEntryPoint)
                 )
-
-
 
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authEntryPoint)
@@ -94,7 +98,6 @@ public class SecurityConfiguration {
     }
 
 
-
     @Bean
     public CorsFilter corsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -106,7 +109,6 @@ public class SecurityConfiguration {
                 "https://infinitycat.site"
         ));
 
-        config.setExposedHeaders(Arrays.asList("Authorization", "Set-Cookie"));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("*"));
         config.setAllowCredentials(true);
@@ -120,7 +122,7 @@ public class SecurityConfiguration {
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter converter = new JwtGrantedAuthoritiesConverter();
-        converter.setAuthorityPrefix("ROLE_");
+        converter.setAuthorityPrefix("");
         converter.setAuthoritiesClaimName("role");
         JwtAuthenticationConverter jwtConverter = new JwtAuthenticationConverter();
         jwtConverter.setJwtGrantedAuthoritiesConverter(converter);

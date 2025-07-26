@@ -26,11 +26,9 @@ public class AdminLearningModuleController {
 
     // Lấy tất cả modules hoặc theo courseId (đã trả về DTO)
     @GetMapping
-    public List<LearningModuleDto> getModules(@RequestParam(required = false) Integer courseId,
-                                              Principal principal) {
+    public List<LearningModuleDto> getModules(@RequestParam(required = false) Integer courseId) {
         if (courseId != null) {
-            String username = principal.getName(); // 👈 Lấy username từ người dùng đăng nhập
-            return moduleService.getByCourseIdDto(courseId, username);
+            return moduleService.getByCourseIdDto(courseId);
         }
         return moduleService.getAllDto();
     }

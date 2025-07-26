@@ -50,7 +50,7 @@ public class Order {
     private Course course;
 
     @Column(name = "expiry_date", nullable = false)
-    private LocalDate expiryDate;
+    private LocalDateTime expiryDate;
 
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
