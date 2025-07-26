@@ -39,6 +39,11 @@ public class CourseService {
         User admin = userRepository.findById(adminId).orElseThrow();
         course.setCreatedBy(admin);
         course.setCreatedAt(LocalDateTime.now());
+
+        if (course.getPrice() == null) {
+            throw new IllegalArgumentException("Price must not be null.");
+        }
+
         return courseRepository.save(course);
     }
     @Transactional
@@ -56,6 +61,9 @@ public class CourseService {
         existing.setStatus(newStatus);
         existing.setUpdatedBy(userRepository.findById(adminId).orElseThrow());
         existing.setUpdatedAt(LocalDateTime.now());
+
+
+        existing.setPrice(updatedCourse.getPrice());
 
         // Nếu chuyển từ active sang inactive thì cập nhật tất cả module thành inactive
         if ("active".equalsIgnoreCase(oldStatus) && "inactive".equalsIgnoreCase(newStatus)) {

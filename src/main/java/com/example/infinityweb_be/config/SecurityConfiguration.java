@@ -62,8 +62,19 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/auth/**", "/oauth2/**", "/uploads/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+
+                        // Permit client API
+                        .requestMatchers("/client/api/course/**").permitAll()
+
+                        .requestMatchers("/api/users/email/**").permitAll()
+
+                        // Cái này nên để sau cùng vì nó bắt tất cả /api/**
+                        .requestMatchers("/api/**").authenticated()
+
                         .anyRequest().authenticated()
                 )
+
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(customOAuth2SuccessHandler)
                         .failureHandler(customOAuth2FailureHandler)

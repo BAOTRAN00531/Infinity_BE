@@ -41,8 +41,9 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Builder.Default
     @Column(name = "is_active", nullable = false)
-    private boolean isActive = false;           // ⬅️  mặc định FALSE khi đăng ký
+    private boolean isActive = false;       // ⬅️  mặc định FALSE khi đăng ký
 
     public boolean isActive()   { return isActive; }
     public void setActive(boolean active) { this.isActive = active; }

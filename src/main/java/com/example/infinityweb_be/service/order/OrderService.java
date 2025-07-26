@@ -34,14 +34,23 @@ public class OrderService {
         Course course = courseRepository.findById(req.getCourseId())
                 .orElseThrow(() -> new RuntimeException("Course not found"));
 
+        User user = userRepository.findById(req.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+
         Order order = Order.builder()
                 .course(course)
-                .totalAmount(course.getPrice()) // cần thêm field price trong Course
+                .user(user)
                 .orderCode(generateOrderCode())
                 .orderDate(LocalDateTime.now())
+                .expiryDate(LocalDateTime.now().plusMonths(12))
                 .status(OrderStatus.PENDING)
-                .totalAmount(BigDecimal.valueOf(1000000)) // ví dụ 1tr
+                .paymentMethod(req.getPaymentMethod())
+                .totalAmount(course.getPrice()) // ✅ lấy giá khóa học từ entity
                 .build();
+
+
+
 
         OrderDetail detail = OrderDetail.builder()
                 .order(order)
