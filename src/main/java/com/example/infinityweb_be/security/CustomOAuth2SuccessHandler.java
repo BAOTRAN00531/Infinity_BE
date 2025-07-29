@@ -1,5 +1,6 @@
 package com.example.infinityweb_be.security;
 
+import com.example.infinityweb_be.service.UserDetailCustom;
 import com.example.infinityweb_be.service.UserService;
 import com.example.infinityweb_be.domain.User;
 import jakarta.servlet.http.HttpServletRequest;
@@ -58,12 +59,8 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         User savedUser = userService.findOrCreateOAuthUser(email, name, picture);
 
         // 👇 dùng savedUser để tạo UserDetails (hoặc bạn có thể tự implement UserDetails)
-        org.springframework.security.core.userdetails.User userDetails =
-                new org.springframework.security.core.userdetails.User(
-                        savedUser.getEmail(),
-                        "",
-                        List.of(new SimpleGrantedAuthority("ROLE_USER"))
-                );
+        UserDetailCustom userDetails = new UserDetailCustom(savedUser);
+
 
         String jwt = jwtService.generateAccessToken(userDetails);
 
