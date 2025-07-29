@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -45,8 +46,8 @@ public class OrderService {
                 .orderDate(LocalDateTime.now())
                 .expiryDate(LocalDateTime.now().plusMonths(12))
                 .status(OrderStatus.PENDING)
-                .paymentMethod(req.getPaymentMethod())
-                .totalAmount(course.getPrice()) // ✅ lấy giá khóa học từ entity
+                .paymentMethod(req.getPaymentMethod()) // OK vì cùng kiểu enum
+                .totalAmount(course.getPrice())
                 .build();
 
 
@@ -65,19 +66,29 @@ public class OrderService {
                 saved.getOrderCode(),
                 saved.getStatus().name(),
                 saved.getTotalAmount(),
-                saved.getPaymentMethod(),
+                saved.getPaymentMethod().name(), // ✅ sửa tại đây
                 saved.getOrderDate(),
                 List.of(new OrderDetailDTO("Unlock khóa học 1 năm", "Mở khóa tất cả nội dung trong 12 tháng", BigDecimal.valueOf(1000000)))
         );
 
     }
 
+//    public void updateOrderStatus(String orderCode, String status) {
+//        Order order = orderRepository.findByOrderCode(orderCode)
+//                .orElseThrow(() -> new RuntimeException("Order not found"));
+//        order.setStatus(OrderStatus.PENDING);
+//        orderRepository.save(order);
+//    }
+
+
     public void updateOrderStatus(String orderCode, String status) {
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-        order.setStatus(OrderStatus.PENDING);
+
+        order.setStatus(OrderStatus.valueOf(status.toUpperCase())); // Chuyển từ chuỗi sang enum
         orderRepository.save(order);
     }
+
 
     private String generateOrderCode() {
         return "ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
@@ -95,11 +106,18 @@ public class OrderService {
                 order.getOrderCode(),
                 order.getStatus().name(),
                 order.getTotalAmount(),
-                order.getPaymentMethod(),
+                order.getPaymentMethod().name(), // ✅ sửa tại đây
                 order.getOrderDate(),
                 details
         );
+
     }
+
+    public Optional<Order> findByOrderCode(String orderCode) {
+        return orderRepository.findByOrderCode(orderCode);
+    }
+
+
 
 
 
@@ -107,6 +125,35 @@ public class OrderService {
     public boolean hasUserPurchasedCourse(Integer userId, Integer courseId) {
         return orderRepository.hasValidOrderByUserId(userId, courseId);
     }
+
+
+    public List<OrderResponse> getOrdersByUserId(Integer userId) {
+        List<Order> orders = orderRepository.findAllByUserId(userId);
+        return orders.stream().map(this::mapToResponse).toList();
+    }
+
+    public List<OrderResponse> getAllOrders() {
+        List<Order> orders = orderRepository.findAll(); // hoặc phân trang
+        return orders.stream().map(this::mapToResponse).toList();
+    }
+
+    private OrderResponse mapToResponse(Order order) {
+        List<OrderDetailDTO> details = order.getOrderDetails().stream()
+                .map(d -> new OrderDetailDTO(d.getServiceName(), d.getServiceDesc(), d.getPrice()))
+                .toList();
+
+        return new OrderResponse(
+                order.getOrderCode(),
+                order.getStatus().name(),
+                order.getTotalAmount(),
+                order.getPaymentMethod().name(),
+                order.getOrderDate(),
+                details
+        );
+    }
+
+
+
 
 
 }
