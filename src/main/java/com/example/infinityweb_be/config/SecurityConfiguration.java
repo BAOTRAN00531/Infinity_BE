@@ -63,6 +63,8 @@ public class SecurityConfiguration {
                         .requestMatchers("/", "/auth/**", "/oauth2/**", "/uploads/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
+                        // Test endpoints
+                        .requestMatchers("/api/lexicon/test", "/api/lexicon/test-data").permitAll()
 
                         // Permit client API
                         .requestMatchers("/client/api/course/**").permitAll()
