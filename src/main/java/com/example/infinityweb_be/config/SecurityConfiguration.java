@@ -60,22 +60,25 @@ public class SecurityConfiguration {
                 .csrf(csrf -> csrf.disable())
                 .addFilterBefore(corsFilter(), LogoutFilter.class)
                 .authorizeHttpRequests(auth -> auth
+
                         .requestMatchers("/", "/auth/**", "/oauth2/**", "/uploads/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // Test endpoints
                         .requestMatchers("/api/lexicon/test", "/api/lexicon/test-data").permitAll()
 
-                        // Permit client API
-                        .requestMatchers("/client/api/course/**").permitAll()
 
+                        // 💡 Các endpoint này phải nằm TRƯỚC .requestMatchers("/api/**")
+                        .requestMatchers("/api/momo/**").permitAll()
+                        .requestMatchers("/api/vnpay/**").permitAll()
+                        .requestMatchers("/client/api/course/**").permitAll()
                         .requestMatchers("/api/users/email/**").permitAll()
 
-                        // Cái này nên để sau cùng vì nó bắt tất cả /api/**
-                        .requestMatchers("/api/**").authenticated()
-
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/**").authenticated() // BẮT BUỘC để sau cùng
                         .anyRequest().authenticated()
                 )
+
 
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(customOAuth2SuccessHandler)

@@ -1,5 +1,6 @@
 package com.example.infinityweb_be.security;
 
+import com.example.infinityweb_be.service.UserDetailCustom;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
@@ -53,8 +54,14 @@ public class JwtService {
     private String generateToken(UserDetails userDetails, long expireMinutes, String tokenType) {
         Instant now = Instant.now();
 
+
+        // ✅ Cast sang kiểu custom để lấy userId
+        UserDetailCustom userDetail = (UserDetailCustom) userDetails;
+        Integer userId = userDetail.getUser().getId();
+
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .subject(userDetails.getUsername())
+                .claim("userId", userId)// ✅ thêm userId
                 .claim("role", userDetails.getAuthorities().stream()
                         .map(GrantedAuthority::getAuthority)
                         .collect(Collectors.joining(",")))

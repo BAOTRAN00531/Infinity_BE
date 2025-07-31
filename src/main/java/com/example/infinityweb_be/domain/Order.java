@@ -2,6 +2,7 @@ package com.example.infinityweb_be.domain;
 
 import com.example.infinityweb_be.domain.course.Course;
 import com.example.infinityweb_be.domain.dto.order.OrderStatus;
+import com.example.infinityweb_be.domain.dto.order.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -35,8 +36,8 @@ public class Order {
     @Column(name = "order_date")
     private LocalDateTime orderDate;
 
-    @Column(name = "payment_method", nullable = false, length = 20)
-    private String paymentMethod;
+    @Enumerated(EnumType.STRING)
+    private PaymentMethod paymentMethod;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20)
