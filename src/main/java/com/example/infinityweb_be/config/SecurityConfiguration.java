@@ -60,9 +60,13 @@ public class SecurityConfiguration {
                 .csrf(csrf -> csrf.disable())
                 .addFilterBefore(corsFilter(), LogoutFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/", "/auth/**", "/oauth2/**", "/uploads/**"
-                        ).permitAll()
+
+                        .requestMatchers("/", "/auth/**", "/oauth2/**", "/uploads/**").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // Test endpoints
+                        .requestMatchers("/api/lexicon/test", "/api/lexicon/test-data").permitAll()
+
 
                         // 💡 Các endpoint này phải nằm TRƯỚC .requestMatchers("/api/**")
                         .requestMatchers("/api/momo/**").permitAll()

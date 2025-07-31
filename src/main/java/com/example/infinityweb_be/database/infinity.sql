@@ -331,8 +331,10 @@ CREATE TABLE dbo.Lexicon_Units (
                                    ipa NVARCHAR(100),                    -- phiên âm IPA
                                    audio_url VARCHAR(255),
                                    image_url VARCHAR(255),
-                                   meaning_vi NVARCHAR(255),
+                                   meaning_eng NVARCHAR(255),            -- nghĩa tiếng Anh
                                    part_of_speech NVARCHAR(50),          -- noun, verb...
+                                   type NVARCHAR(50),                    -- vocabulary, phrase, idiom
+                                   difficulty NVARCHAR(50),              -- beginner, intermediate, advanced
                                    created_at DATETIME DEFAULT GETDATE(),
                                    FOREIGN KEY (language_id) REFERENCES dbo.Languages(id)
 );

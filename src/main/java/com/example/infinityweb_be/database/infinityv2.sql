@@ -308,6 +308,14 @@ CREATE TABLE dbo.Lexicon_Units
     FOREIGN KEY (language_id) REFERENCES dbo.Languages (id)
 )
 GO
+ALTER TABLE dbo.Lexicon_Units
+    ADD
+    [type]         NVARCHAR(50) NULL, -- loại từ (cụm, từ đơn, trợ từ,...)
+    difficulty     NVARCHAR(50) NULL; -- mức độ khó
+ALTER TABLE dbo.Lexicon_Units
+DROP COLUMN meaning_vi;
+ALTER TABLE dbo.Lexicon_Units
+    ADD meaning_eng NVARCHAR(255);
 --2.20 Phrases
 CREATE TABLE dbo.Phrases
 (
