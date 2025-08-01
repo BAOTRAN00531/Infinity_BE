@@ -1,4 +1,4 @@
-package com.example.infinityweb_be.controller.order;
+package com.example.infinityweb_be.controller.client.order;
 
 import com.example.infinityweb_be.domain.Order;
 import com.example.infinityweb_be.domain.dto.order.OrderStatus;

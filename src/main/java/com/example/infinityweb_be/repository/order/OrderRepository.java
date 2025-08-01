@@ -15,6 +15,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     Optional<Order> findByOrderCode(String orderCode);
 
+
     @Query("""
         SELECT COUNT(o) > 0 FROM Order o
         WHERE o.user.id = :userId
@@ -37,7 +38,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     boolean existsByUserIdAndCourseIdAndStatus(Integer userId, Integer courseId, OrderStatus status);
 
-    List<Order> findAllByUserId(Integer userId);
+//    List<Order> findAllByUserId(Integer userId);
+
+    List<Order> findByUserId(Integer userId);
+    List<Order> findByUserIdAndStatus(Integer userId, OrderStatus status);
 
 }
 

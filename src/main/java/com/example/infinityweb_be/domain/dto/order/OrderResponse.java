@@ -17,12 +17,10 @@ public class OrderResponse {
     private BigDecimal totalAmount;
     private String paymentMethod;
     private LocalDateTime orderDate;
+    private String courseName;
     private List<OrderDetailDTO> details;
+    private String userName;
 
-    public OrderResponse(String orderCode, String status, BigDecimal totalAmount, String paymentMethod) {
-        this.orderCode = orderCode;
-        this.status = status;
-        this.totalAmount = totalAmount;
-        this.paymentMethod = paymentMethod;
-    }
+
+
 }
