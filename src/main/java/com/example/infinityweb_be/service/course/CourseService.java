@@ -62,7 +62,7 @@ public class CourseService {
         existing.setUpdatedBy(userRepository.findById(adminId).orElseThrow());
         existing.setUpdatedAt(LocalDateTime.now());
 
-
+        existing.setThumbnail(updatedCourse.getThumbnail());
         existing.setPrice(updatedCourse.getPrice());
 
         // Nếu chuyển từ active sang inactive thì cập nhật tất cả module thành inactive
@@ -99,7 +99,8 @@ public class CourseService {
                 course.getLevel(),
                 course.getLanguage() != null ? course.getLanguage().getName() : null,
                 course.getPrice(),
-                course.getStatus()
+                course.getStatus(),
+                course.getThumbnail()
         );
     }
 

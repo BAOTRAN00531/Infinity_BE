@@ -67,6 +67,7 @@ public class SecurityConfiguration {
                         // Test endpoints
                         .requestMatchers("/api/lexicon/test", "/api/lexicon/test-data").permitAll()
 
+                        .requestMatchers("/api/student/dashboard").permitAll()
 
                         // 💡 Các endpoint này phải nằm TRƯỚC .requestMatchers("/api/**")
                         .requestMatchers("/api/momo/**").permitAll()

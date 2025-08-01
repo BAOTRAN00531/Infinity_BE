@@ -122,10 +122,11 @@ public class OrderService {
 
 
 
-    // check hoc vien
+    // dùng trong backend khi phân quyền xem nội dung
     public boolean hasUserPurchasedCourse(Integer userId, Integer courseId) {
         return orderRepository.hasValidOrderByUserId(userId, courseId);
     }
+
 
 
     public List<OrderResponse> getOrdersByUserId(Integer userId) {
@@ -134,7 +135,7 @@ public class OrderService {
     }
 
 
-
+//dùng để truy xuất các khóa học học viên đã mua
     public List<OrderResponse> getOrdersByUserIdAndStatus(Integer userId, String status) {
         List<Order> orders;
         if (status != null) {

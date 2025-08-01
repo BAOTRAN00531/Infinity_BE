@@ -35,5 +35,6 @@ public class CourseDto {
     private String language;
     private BigDecimal price;
     private String status;
+    private String thumbnail;
 }
 

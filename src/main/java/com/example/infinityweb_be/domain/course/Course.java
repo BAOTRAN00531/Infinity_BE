@@ -44,6 +44,9 @@ public class Course {
     @Column(name = "price")
     private BigDecimal price;
 
+    @Column(name = "thumbnail")
+    private String thumbnail;
+
 
     @Column(name = "status")
     private String status;
