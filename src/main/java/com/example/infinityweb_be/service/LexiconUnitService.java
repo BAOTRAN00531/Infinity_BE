@@ -237,7 +237,7 @@ public class LexiconUnitService {
         if (unit.getAudioUrl() == null || unit.getAudioUrl().isEmpty()) {
             try {
                 String audioBase64 = textToSpeechService.synthesizeText(unit.getText(), languageCode);
-                String audioUrl = audioFileService.saveAudioFromBase64(audioBase64, unit.getText(), languageCode);
+              String audioUrl = audioFileService.saveAudioFromBase64(audioBase64, unit.getText(), languageCode);
                 unit.setAudioUrl(audioUrl);
             } catch (Exception e) {
                 // Log error nhưng không fail việc tạo lexicon unit

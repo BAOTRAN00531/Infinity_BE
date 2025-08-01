@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "omega-healer-467413-b7",
+  "private_key_id": "f556a1751c390ddc61ca51e70e3bd2dfa12ca5a6",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCrh7gDHmqqPZdT\ndA6/R9JNVvinr27oK3b9RvTwf+QqHOsXub4sLWCBYKVWSgsBrtwcz1sSkF1QQYFd\nxans5ZYXim267+Ui2BSCuzWiLysmgvkfU6uQ7RF+fttxePjjbg38hJzzQjc6XDDc\nsGCcX5Sd6bcVhntYe77zICAjGrRaRflGiimbw1SHdP/7sqL75MKohpuInJESFhtN\nr8+y9oROmac8bL5Hc2Tet+H80B+RIQkFA2RPBjh8lwT7wEXdxNL5ohWMpeeggJXi\n2/qww949hgPzmquV7JeM2WDCGRk4I1pAnYbOHU229NAayixq4hlsAINrR2PALf5s\n7hAN8AYZAgMBAAECggEAGr6yG9ZhxkKNNkdpxzxhF4sAgVDSx6ODTZGDPn6KamCQ\n7WWaN9QpcHLLxM0Ns0j67AkOx7G3wvw7ug3IZXYUtX3xhwzBmvG7HPkory2QmlQg\nmNhYb2PvbtxDxgkZMYjm6GEbAbjo2JIoUji0D529k/Oths8tq0m8J7dyG1ceGNb/\nXTspLg30OD8yHpEy5TWNRwJ0HqFWR8say73zQGOx9hU0u6r92GinStbcRMwqCM+w\nZdeq7pZzo8cxwxeZzJzYn4wO9miiQADP5hsJ5R4K3dS+IDj+Au7g62ELcz6G/iM+\nA1kWk3G6vCb61G/998DEA+VmrT3UX9k3LNq/DTd2KQKBgQDtvro7DWp+rx3Tar3b\nbQf1wS6kGYvwomkb6kMSHE/MOt4gLjrLEILZ80OXaQfrC4HkfgTwZ3yb80q/xghQ\nYvMfqm7y/rD1mLly8WByLZYLVfqKep3znGzkKzFit5qk3Kw/UzuCX9ZYdtLCQrbG\nwEYSEjfKwdThYLGzD8egf5m31QKBgQC4s22dev2TCYvDSeLxaSWqjhaDbPlhUBzE\nflmjXMf0fzqi9GXYn69AI04iLQ44B6oCoV9pdrDmmTxMXiHCPemh3Oe9Kt8SDoP1\n3PqDKOdNGgkdR6fY26bC648k+l+Inual6rZVcAK8O9f5Vy9CDEvXVVbeMxx2lM7H\njEBBPBObNQKBgEzfmgoUKXYzG3rMDf3QgH1nbLRlCknRyhjbo7pMa0UHV+Gh8SLO\nAPGGZjmkHYpT2zlNwj0VyUYH4gimePO9Ow3nJx7tWbzgGD7ha6Uftl+N+ogiY8Zs\nsw0IJlzcL2XVcOC9AgYDBSTvrvBfcAhODZo0R9QI3tPNV0gl9w+fks3NAoGAVRso\naSYg7b26TtQe5Eok9v/d09VE29hESS5HM4UvBbQSWr/upfB+mjkqaYkFQkAV0Hx3\nMGtme/sj07SULaLForXdekbk3rcdiw61x/XzDo3uoTVBXCVqI+rS3KEZoCRH9y+9\nsISaXg3dKKFJv09XKvPBwUUf2mwbE8vGV8jM5/kCgYAxtew2zu5GE+FtR1smMgN7\nZ1OFIRloS9J0dq9QDzoa4IoN/PMHvCCcapubi60V7Wam2dJkCf1NpxBpMemFN/rJ\nv/POOCWTlVsscoa82avivfJHOwZ/1urV5r/hcJ0AuPlC612bc/yL4jua8EYmCRgz\nCskXiBE0W6Mw9lHr54638A==\n-----END PRIVATE KEY-----\n",
+  "client_email": "tts-service@omega-healer-467413-b7.iam.gserviceaccount.com",
+  "client_id": "111150095145033270544",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/tts-service%40omega-healer-467413-b7.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

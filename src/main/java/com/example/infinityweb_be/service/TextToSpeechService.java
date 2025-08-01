@@ -31,7 +31,7 @@ public class TextToSpeechService {
             // Chuyển đổi country code sang language code nếu cần
             String ttsLanguageCode = languageMappingService.getTtsLanguageCode(languageCode);
             
-            InputStream credentialsStream = new ClassPathResource("tts-service-account.json").getInputStream();
+            InputStream credentialsStream = new ClassPathResource("tts_service_main.json").getInputStream();
             TextToSpeechSettings settings = TextToSpeechSettings.newBuilder()
                     .setCredentialsProvider(() -> GoogleCredentials.fromStream(credentialsStream))
                     .build();
@@ -60,7 +60,7 @@ public class TextToSpeechService {
         try {
             String ttsLanguageCode = languageMappingService.getTtsLanguageCode(languageCode);
             
-            InputStream credentialsStream = new ClassPathResource("tts-service-account.json").getInputStream();
+            InputStream credentialsStream = new ClassPathResource("tts_service_main.json").getInputStream();
             TextToSpeechSettings settings = TextToSpeechSettings.newBuilder()
                     .setCredentialsProvider(() -> GoogleCredentials.fromStream(credentialsStream))
                     .build();
@@ -82,7 +82,7 @@ public class TextToSpeechService {
         try {
             String ttsLanguageCode = languageMappingService.getTtsLanguageCode(languageCode);
             
-            InputStream credentialsStream = new ClassPathResource("tts-service-account.json").getInputStream();
+            InputStream credentialsStream = new ClassPathResource("tts_service_main.json").getInputStream();
             TextToSpeechSettings settings = TextToSpeechSettings.newBuilder()
                     .setCredentialsProvider(() -> GoogleCredentials.fromStream(credentialsStream))
                     .build();
