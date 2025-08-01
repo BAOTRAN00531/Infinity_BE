@@ -1,11 +1,14 @@
 package com.example.infinityweb_be.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
 @Data
 @Table(name = "Languages")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+
 public class Language {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
