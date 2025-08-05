@@ -3,6 +3,7 @@ package com.example.infinityweb_be.controller.student;
 
 import com.example.infinityweb_be.domain.dto.student.StudentCourseProgressDto;
 import com.example.infinityweb_be.repository.CourseRepository;
+
 import com.example.infinityweb_be.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,7 +17,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StudentDashboardController {
 
-    private final CourseRepository courseRepository;
+//    private final EnrollmentRepository enrollmentRepository;
+private final CourseRepository courseRepo;
     private final UserService userService;
 
 
@@ -24,7 +26,9 @@ public class StudentDashboardController {
     @PreAuthorize("hasRole('STUDENT')")
     public List<StudentCourseProgressDto> getDashboardCourses(Principal principal) {
         Integer userId = userService.getUserIdFromPrincipal(principal);
-        return courseRepository.findStudentDashboardCourses(userId);
+        return courseRepo.findStudentDashboardCourses(userId);
+
+//        return enrollmentRepository.findStudentDashboardCourses(userId);
     }
 
     private Integer getUserIdFromPrincipal(Principal principal) {

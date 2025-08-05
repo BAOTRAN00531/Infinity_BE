@@ -299,7 +299,7 @@ CREATE TABLE dbo.Lexicon_Units
 (
     id             INT IDENTITY (1,1) PRIMARY KEY,
     text           NVARCHAR(100) NOT NULL, -- ví dụ: お
-    language_id    INT           NOT NULL, -- foreign key
+    language_id    INT NOT NULL,           -- foreign key
     ipa            NVARCHAR(100),          -- phiên âm IPA
     audio_url      VARCHAR(255),
     image_url      VARCHAR(255),
@@ -308,13 +308,13 @@ CREATE TABLE dbo.Lexicon_Units
     created_at     DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (language_id) REFERENCES dbo.Languages (id)
 )
-GO
+    GO
 ALTER TABLE dbo.Lexicon_Units
-    ADD
-    [type]         NVARCHAR(50) NULL, -- loại từ (cụm, từ đơn, trợ từ,...)
+    ADD [type]         NVARCHAR(50) NULL, -- loại từ (cụm, từ đơn, trợ từ,...)
     difficulty     NVARCHAR(50) NULL; -- mức độ khó
 ALTER TABLE dbo.Lexicon_Units
-DROP COLUMN meaning_vi;
+DROP
+COLUMN meaning_vi;
 ALTER TABLE dbo.Lexicon_Units
     ADD meaning_eng NVARCHAR(255);
 --2.20 Phrases
@@ -322,7 +322,7 @@ CREATE TABLE dbo.Phrases
 (
     id          INT IDENTITY (1,1) PRIMARY KEY,
     text        NVARCHAR(255) NOT NULL, -- ví dụ: お茶をください
-    language_id INT           NOT NULL,
+    language_id INT NOT NULL,
     ipa         NVARCHAR(255),
     audio_url   VARCHAR(255),
     image_url   VARCHAR(255),
@@ -330,13 +330,16 @@ CREATE TABLE dbo.Phrases
     created_at  DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (language_id) REFERENCES dbo.Languages (id)
 )
-GO
+    GO
 --2.21 Phrase_Lexicon_Map
 CREATE TABLE dbo.Phrase_Lexicon_Map
 (
     phrase_id  INT NOT NULL,
-    lexicon_id INT NOT NULL,
-    [order]    INT NOT NULL, -- vị trí trong cụm
+    lexicon_id INT NOT NULL, [
+    order]
+    INT
+    NOT
+    NULL, -- vị trí trong cụm
     FOREIGN KEY (phrase_id) REFERENCES dbo.Phrases (id),
     FOREIGN KEY (lexicon_id) REFERENCES dbo.Lexicon_Units (id)
 )

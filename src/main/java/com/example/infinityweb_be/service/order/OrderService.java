@@ -11,6 +11,7 @@ import com.example.infinityweb_be.domain.dto.order.OrderResponse;
 import com.example.infinityweb_be.domain.dto.order.OrderStatus;
 import com.example.infinityweb_be.repository.CourseRepository;
 import com.example.infinityweb_be.repository.UserRepository;
+
 import com.example.infinityweb_be.repository.order.OrderRepository;
 
 import jakarta.validation.Valid;
@@ -35,6 +36,7 @@ public class OrderService {
     private final CourseRepository courseRepository;
 
 
+//Tạo đơn hàng mới
     public OrderResponse createOrder(CreateOrderRequest req) {
 
         Course course = courseRepository.findById(req.getCourseId())
@@ -74,7 +76,7 @@ public class OrderService {
 //        orderRepository.save(order);
 //    }
 
-
+//Cập nhật trạng thái đơn hàng
     public void updateOrderStatus(String orderCode, String status) {
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
@@ -83,11 +85,14 @@ public class OrderService {
         orderRepository.save(order);
     }
 
-
+  //  Tạo mã đơn hàng
     private String generateOrderCode() {
-        return "ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        return "DH" + String.valueOf(System.currentTimeMillis()).substring(5);
     }
 
+
+
+   // Lấy thông tin đơn hàng theo mã
     public OrderResponse getOrderByCode(String orderCode) {
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
@@ -95,7 +100,7 @@ public class OrderService {
         return mapToResponse(order);
     }
 
-
+//Mapping từ Entity → DTO
     private OrderResponse mapToResponse(Order order) {
         List<OrderDetailDTO> details = order.getOrderDetails().stream()
                 .map(d -> new OrderDetailDTO(d.getServiceName(), d.getServiceDesc(), d.getPrice()))
@@ -113,7 +118,7 @@ public class OrderService {
         );
     }
 
-
+//Tìm đơn hàng theo mã (trả Optional)
     public Optional<Order> findByOrderCode(String orderCode) {
         return orderRepository.findByOrderCode(orderCode);
     }
@@ -122,20 +127,20 @@ public class OrderService {
 
 
 
-    // dùng trong backend khi phân quyền xem nội dung
+//Kiểm tra người dùng đã mua khóa học chưa
     public boolean hasUserPurchasedCourse(Integer userId, Integer courseId) {
         return orderRepository.hasValidOrderByUserId(userId, courseId);
     }
 
 
-
+// Lấy tất cả đơn hàng theo người dùng
     public List<OrderResponse> getOrdersByUserId(Integer userId) {
         List<Order> orders = orderRepository.findByUserId(userId);
         return orders.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
 
-//dùng để truy xuất các khóa học học viên đã mua
+//Lọc đơn hàng theo người dùng và trạng thái
     public List<OrderResponse> getOrdersByUserIdAndStatus(Integer userId, String status) {
         List<Order> orders;
         if (status != null) {
@@ -148,7 +153,7 @@ public class OrderService {
     }
 
 
-
+//Lấy tất cả đơn hàng
     public List<OrderResponse> getAllOrders() {
         List<Order> orders = orderRepository.findAll(); // hoặc phân trang
         return orders.stream().map(this::mapToResponse).toList();
@@ -156,7 +161,7 @@ public class OrderService {
 
 
 
-
+// Hủy đơn hàng
     public void cancelOrder(String orderCode, Integer userId) {
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn"));
@@ -173,7 +178,7 @@ public class OrderService {
         orderRepository.save(order);
     }
 
-
+//Duyệt đơn hàng
     public void approveOrder(String orderCode) {
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn"));
@@ -184,13 +189,19 @@ public class OrderService {
 
         order.setStatus(OrderStatus.PAID);
         orderRepository.save(order);
+
     }
 
 
+
+// Xoá đơn hàng
     public void deleteOrderByCode(String orderCode) {
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         orderRepository.delete(order);
     }
+
+
+
 
 }

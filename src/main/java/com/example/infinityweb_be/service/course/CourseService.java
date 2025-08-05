@@ -1,17 +1,28 @@
 package com.example.infinityweb_be.service.course;
 
+import com.example.infinityweb_be.domain.Lesson;
 import com.example.infinityweb_be.domain.course.Course;
 import com.example.infinityweb_be.domain.dto.CourseDto;
+import com.example.infinityweb_be.domain.dto.LessonDto;
+import com.example.infinityweb_be.domain.dto.modules.LearningModuleDto;
+import com.example.infinityweb_be.domain.dto.order.OrderStatus;
+import com.example.infinityweb_be.domain.dto.student.LearningCourseDto;
 import com.example.infinityweb_be.repository.CourseRepository;
+import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
 import com.example.infinityweb_be.repository.LearningModuleRepository;
+import com.example.infinityweb_be.repository.order.OrderRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import com.example.infinityweb_be.domain.User;
 
 import jakarta.persistence.EntityManager;
@@ -24,6 +35,8 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
     private final LearningModuleRepository learningModuleRepository;
+    private final LessonRepository lessonRepository;
+    private final OrderRepository orderRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -115,5 +128,47 @@ public class CourseService {
         return courseRepository.findByLanguageId(languageId);
     }
 
+
+//    ===========HIEN THI COURSE STUDENT=============
+
+    public LearningCourseDto getCourseForStudent(Integer courseId, Integer userId) {
+        // 1. Kiểm tra học viên đã mua khóa học chưa
+        boolean hasPurchased = orderRepository.existsByUserIdAndCourseIdAndStatus(userId, courseId, OrderStatus.PAID);
+        if (!hasPurchased) {
+            throw new AccessDeniedException("Bạn chưa mua khóa học này.");
+        }
+
+        // 2. Lấy thông tin khóa học
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học."));
+
+        // 3. Lấy danh sách module
+        List<LearningModuleDto> moduleDtos = learningModuleRepository.findByCourseId(courseId)
+                .stream()
+                .map(module -> {
+                    long partsCount = lessonRepository.countByModule_Id(module.getId());
+
+                    return new LearningModuleDto(
+                            module.getId(),
+                            module.getName(),
+                            module.getDescription(),
+                            course.getId(),
+                            course.getName(),
+                            module.getOrder(),
+                            module.getDuration(),
+                            module.getStatus(),
+                            partsCount
+                    );
+                })
+                .collect(Collectors.toList());
+
+        // 4. Trả về DTO tổng hợp
+        return new LearningCourseDto(
+                course.getId(),
+                course.getName(),
+                course.getThumbnail(),
+                moduleDtos
+        );
+    }
 
 }

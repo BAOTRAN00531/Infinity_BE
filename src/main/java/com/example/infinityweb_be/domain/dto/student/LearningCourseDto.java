@@ -1,20 +1,19 @@
 package com.example.infinityweb_be.domain.dto.student;
 
+import com.example.infinityweb_be.domain.dto.modules.LearningModuleDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class StudentCourseProgressDto {
+public class LearningCourseDto {
     private Integer courseId;
     private String courseName;
     private String thumbnail;
-    private BigDecimal price;
-    private Long totalModules;
-    private Long completedModules;
-    private Double progressPercentage;
+    private List<LearningModuleDto> modules;
 }
+

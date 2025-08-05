@@ -65,13 +65,18 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // Test endpoints
-                        .requestMatchers("/api/lexicon/test", "/api/lexicon/test-data").permitAll()
+                        .requestMatchers("/api/lexicon/test", "/api/lexicon/test-data","/api/lexicon/phrases", "/api/lexicon/units","/api/tts/voices/**" ).permitAll()
 
-                        .requestMatchers("/api/student/dashboard").permitAll()
+                        .requestMatchers("/api/student/**").permitAll()
 
                         // 💡 Các endpoint này phải nằm TRƯỚC .requestMatchers("/api/**")
                         .requestMatchers("/api/momo/**").permitAll()
                         .requestMatchers("/api/vnpay/**").permitAll()
+                        .requestMatchers("/api/sepay/**").permitAll()
+
+                        // 📡 Webhook phải đứng trước /api/**
+                        .requestMatchers("/api/sepay").permitAll()
+
                         .requestMatchers("/client/api/course/**").permitAll()
                         .requestMatchers("/api/users/email/**").permitAll()
 
@@ -113,7 +118,8 @@ public class SecurityConfiguration {
         config.setAllowedOrigins(Arrays.asList(
                 "http://localhost:3000",
                 "https://web-infinityfe.vercel.app",
-                "https://infinitycat.site"
+                "https://infinitycat.site",
+                "https://91d3ea558743.ngrok-free.app"
         ));
 
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));

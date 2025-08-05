@@ -2,6 +2,7 @@ package com.example.infinityweb_be.service.student;
 
 import com.example.infinityweb_be.domain.dto.student.StudentCourseProgressDto;
 import com.example.infinityweb_be.repository.CourseRepository;
+//import com.example.infinityweb_be.repository.enrollment.EnrollmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

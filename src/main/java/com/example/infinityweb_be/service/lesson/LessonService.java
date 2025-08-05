@@ -5,6 +5,7 @@ import com.example.infinityweb_be.domain.LearningModule;
 import com.example.infinityweb_be.domain.Lesson;
 import com.example.infinityweb_be.domain.User;
 import com.example.infinityweb_be.domain.dto.LessonDto;
+import com.example.infinityweb_be.domain.dto.order.OrderStatus;
 import com.example.infinityweb_be.repository.LearningModuleRepository;
 import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
@@ -33,6 +34,7 @@ public class LessonService {
     private final LearningModuleRepository moduleRepository;
     private final UserRepository userRepository;
     private final QuestionRepository questionRepository;
+    private  final OrderRepository orderRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -136,5 +138,29 @@ public class LessonService {
         dto.setUpdatedAt(lesson.getUpdatedAt());
         return dto;
     }
+
+//====== LESSON STUDENT
+
+
+    public List<LessonDto> getLessonsByModuleForStudent(Integer moduleId, Integer userId) {
+        LearningModule module = moduleRepository.findById(moduleId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy module"));
+
+        boolean hasPurchased = orderRepository.existsByUserIdAndCourseIdAndStatus(
+                userId, module.getCourse().getId(), OrderStatus.PAID
+        );
+        if (!hasPurchased) {
+            throw new AccessDeniedException("Bạn chưa mua khóa học chứa module này.");
+        }
+
+        return lessonRepository.findByModule_Id(moduleId)
+                .stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+
+
+
 
 }
