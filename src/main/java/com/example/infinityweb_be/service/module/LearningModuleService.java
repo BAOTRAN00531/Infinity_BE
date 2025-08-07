@@ -5,15 +5,19 @@ import com.example.infinityweb_be.domain.LearningModule;
 import com.example.infinityweb_be.domain.User;
 import com.example.infinityweb_be.domain.dto.modules.LearningModuleDto;
 import com.example.infinityweb_be.domain.dto.modules.LearningModuleRequest;
+import com.example.infinityweb_be.domain.dto.order.OrderStatus;
 import com.example.infinityweb_be.domain.map.LearningModuleMapper;
 import com.example.infinityweb_be.repository.CourseRepository;
 import com.example.infinityweb_be.repository.LearningModuleRepository;
 import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
+import com.example.infinityweb_be.repository.order.OrderRepository;
+import com.example.infinityweb_be.service.UserService;
 import com.example.infinityweb_be.service.order.OrderService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +33,7 @@ public class LearningModuleService {
     private final CourseRepository courseRepository;
     private final LessonRepository lessonRepository;
     private final UserRepository userRepository;
+    private final OrderRepository orderRepository;
 
     private final OrderService orderService; // 👈 thêm dòng này
     private final LearningModuleMapper moduleMapper; // 👈 thêm nếu dùng mapper
@@ -173,6 +178,18 @@ public class LearningModuleService {
                 .collect(Collectors.toList());
     }
 
+//====== STUDENT LESSON ======//
+public List<LearningModuleDto> getModulesByCourseForStudent(Integer courseId, Integer userId) {
+    boolean hasPurchased = orderRepository.existsByUserIdAndCourseIdAndStatus(userId, courseId, OrderStatus.PAID);
+    if (!hasPurchased) {
+        throw new AccessDeniedException("Bạn chưa mua khóa học này.");
+    }
+
+    return moduleRepository.findByCourseId(courseId)
+            .stream()
+            .map(this::toDto)
+            .collect(Collectors.toList());
+}
 
 
 }

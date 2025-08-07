@@ -131,4 +131,8 @@ SELECT
     'idiom',
     'vocabulary',
     'advanced'
-FROM dbo.Languages l WHERE l.code = 'JP'; 
+FROM dbo.Languages l WHERE l.code = 'JP';
+
+
+
+select * from Lexicon_Units;
