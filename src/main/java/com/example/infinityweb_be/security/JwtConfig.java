@@ -5,11 +5,14 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.jwt.*;
 
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.PrivateKey;
@@ -20,14 +23,17 @@ import java.util.Base64;
 @Configuration
 public class JwtConfig {
 
+    @Value("${rsa.private-key-path}")
+    private String privateKeyPath;
+
     @Bean
     public KeyPair keyPair() throws Exception {
-        InputStream is = getClass().getClassLoader().getResourceAsStream("keys/private.pem"); // ✅ sửa đúng đường dẫn
-        if (is == null) {
-            throw new IllegalArgumentException("Không tìm thấy file private.pem trong thư mục resources/keys");
-        }
+//        InputStream is = getClass().getClassLoader().getResourceAsStream("keys/private.pem"); // ✅ sửa đúng đường dẫn
+//        if (is == null) {
+//            throw new IllegalArgumentException("Không tìm thấy file private.pem trong thư mục resources/keys");
+//        }
 
-        String pem = new String(is.readAllBytes())
+        String pem = new String(Files.readAllBytes(Paths.get(privateKeyPath)))
                 .replace("-----BEGIN PRIVATE KEY-----", "")
                 .replace("-----END PRIVATE KEY-----", "")
                 .replaceAll("\\s+", "");
