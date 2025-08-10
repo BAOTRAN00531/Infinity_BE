@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,6 +35,10 @@ public class FileUploadController {
         Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
 
         // Trả về đường dẫn tương đối để FE dùng
-        return Map.of("url", "/uploads/" + filename);
+//        return Map.of("url", "/uploads/" + filename);
+        String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+        String fileUrl = baseUrl + "/uploads/" + filename;
+        return Map.of("url", fileUrl);
+
     }
 }
