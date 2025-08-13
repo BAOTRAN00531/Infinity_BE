@@ -40,13 +40,17 @@ import java.util.List;
 public class SecurityConfiguration {
     private final JwtAuthFilter jwtAuthFilter;
     private final CustomAuthEntryPoint authEntryPoint;
-    private final JwtDecoder jwtDecoder; // Tiêm JwtDecoder từ JwtConfig
-
+    private final JwtDecoder jwtDecoder;
     private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
     private final CustomOAuth2FailureHandler customOAuth2FailureHandler;
 
-    public SecurityConfiguration(JwtAuthFilter jwtAuthFilter, @Lazy CustomAuthEntryPoint authEntryPoint, @Autowired JwtDecoder jwtDecoder, CustomOAuth2SuccessHandler customOAuth2SuccessHandler, CustomOAuth2FailureHandler customOAuth2FailureHandler) {
-
+    public SecurityConfiguration(
+            JwtAuthFilter jwtAuthFilter,
+            @Lazy CustomAuthEntryPoint authEntryPoint,
+            @Autowired JwtDecoder jwtDecoder,
+            CustomOAuth2SuccessHandler customOAuth2SuccessHandler,
+            CustomOAuth2FailureHandler customOAuth2FailureHandler
+    ) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.authEntryPoint = authEntryPoint;
         this.jwtDecoder = jwtDecoder;
@@ -60,31 +64,20 @@ public class SecurityConfiguration {
                 .csrf(csrf -> csrf.disable())
                 .addFilterBefore(corsFilter(), LogoutFilter.class)
                 .authorizeHttpRequests(auth -> auth
-
+                        // Các endpoint công khai
                         .requestMatchers("/", "/auth/**", "/oauth2/**", "/uploads/**").permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
-                        // Test endpoints
-                        .requestMatchers("/api/lexicon/test", "/api/lexicon/test-data","/api/lexicon/phrases", "/api/lexicon/units","/api/tts/voices/**" ).permitAll()
-
-                        .requestMatchers("/api/student/**").permitAll()
-
-                        // 💡 Các endpoint này phải nằm TRƯỚC .requestMatchers("/api/**")
-                        .requestMatchers("/api/momo/**").permitAll()
-                        .requestMatchers("/api/vnpay/**").permitAll()
-                        .requestMatchers("/api/sepay/**").permitAll()
-
-                        // 📡 Webhook phải đứng trước /api/**
-                        .requestMatchers("/api/sepay").permitAll()
-
+                        .requestMatchers("/api/lexicon/test", "/api/lexicon/test-data", "/api/lexicon/phrases", "/api/lexicon/units", "/api/tts/voices/**").permitAll()
+                        .requestMatchers("/api/momo/**", "/api/vnpay/**", "/api/sepay/**").permitAll()
                         .requestMatchers("/client/api/course/**").permitAll()
                         .requestMatchers("/api/users/email/**").permitAll()
-
+                        // Cho phép khách truy cập các API công khai của student
+                        .requestMatchers("/api/student/dashboard/public", "/api/student/course/public/**").permitAll()
+                        // Các endpoint yêu cầu xác thực
+                        .requestMatchers("/api/student/**").hasRole("STUDENT")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/**").authenticated() // BẮT BUỘC để sau cùng
+                        .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated()
                 )
-
 
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(customOAuth2SuccessHandler)
@@ -114,19 +107,15 @@ public class SecurityConfiguration {
     public CorsFilter corsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
-
         config.setAllowedOrigins(Arrays.asList(
                 "http://localhost:3000",
-                "https://web-infinityfe.vercel.app",
                 "https://infinitycat.site",
-                "https://91d3ea558743.ngrok-free.app"
+                "https://www.infinitycat.site"
         ));
-
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("*"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
-
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
     }
