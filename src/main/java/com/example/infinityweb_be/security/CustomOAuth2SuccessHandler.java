@@ -45,22 +45,30 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                                         Authentication authentication) throws IOException {
 
         OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
+        String registrationId = oauthToken.getAuthorizedClientRegistrationId(); // google hoặc facebook
 
         Map<String, Object> attributes = oauthToken.getPrincipal().getAttributes();
 
         String email = (String) attributes.get("email");
         String name = (String) attributes.get("name");
-        String picture = (String) attributes.get("picture");
 
-        log.info("✅ OAuth2 login thành công: email={}, name={}, avatar={}", email, name, picture);
+        String picture = null;
+        if ("google".equals(registrationId)) {
+            // Google trả string
+            picture = (String) attributes.get("picture");
+        } else if ("facebook".equals(registrationId)) {
+            // Facebook trả object
+            Map<String, Object> pictureObj = (Map<String, Object>) attributes.get("picture");
+            Map<String, Object> pictureData = (Map<String, Object>) pictureObj.get("data");
+            picture = (String) pictureData.get("url");
+        }
+
+        log.info("✅ OAuth2 login thành công [{}]: email={}, name={}, avatar={}",
+                registrationId, email, name, picture);
         log.info("OAuth2 Attributes: {}", attributes);
 
-        // 👇 lưu user vào DB nếu chưa tồn tại
         User savedUser = userService.findOrCreateOAuthUser(email, name, picture);
-
-        // 👇 dùng savedUser để tạo UserDetails (hoặc bạn có thể tự implement UserDetails)
         UserDetailCustom userDetails = new UserDetailCustom(savedUser);
-
 
         String jwt = jwtService.generateAccessToken(userDetails);
 
@@ -74,6 +82,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 
         redirectStrategy.sendRedirect(request, response, redirectUrl);
     }
+
 
 
 }
