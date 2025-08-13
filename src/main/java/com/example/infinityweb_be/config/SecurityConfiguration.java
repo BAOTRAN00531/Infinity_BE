@@ -5,6 +5,7 @@ import com.example.infinityweb_be.config.CustomAuthEntryPoint;
 import com.example.infinityweb_be.security.CustomOAuth2FailureHandler;
 import com.example.infinityweb_be.security.CustomOAuth2SuccessHandler;
 import com.example.infinityweb_be.service.JwtAuthFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -94,8 +95,14 @@ public class SecurityConfiguration {
                         .accessDeniedHandler(new BearerTokenAccessDeniedHandler())
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .formLogin(form -> form.disable());
-
+                .formLogin(form -> form.disable())
+                .logout(logout -> logout
+                                .logoutUrl("/logout") // khớp với API của bạn
+                                .logoutSuccessHandler((request, response, authentication) -> {
+                                    response.setStatus(HttpServletResponse.SC_OK); // trả về 200 OK
+                                })
+                                .permitAll()
+                        );
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         log.info("✅ Security filter chain configured.");

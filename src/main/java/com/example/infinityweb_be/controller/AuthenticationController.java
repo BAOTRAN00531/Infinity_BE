@@ -22,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
+
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -34,6 +35,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.KeyPair;
 import java.security.interfaces.RSAPublicKey;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Map;
@@ -269,24 +271,38 @@ public class AuthenticationController {
         ));
     }
 
-
+    @Transactional
     @PostMapping("/forgot-password")
     public ResponseEntity<Map<String, Object>> forgotPassword(@RequestBody Map<String, String> request) {
         String email = request.get("email");
 
         Optional<User> optionalUser = userRepository.findByEmail(email);
-
         if (optionalUser.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Email không tồn tại"));
         }
 
         User user = optionalUser.get();
-        // Ép kiểu Integer sang Long
         Long userId = user.getId().longValue();
+
+        // 🔹 Lấy OTP cũ (nếu có)
+        VerificationToken existingToken = verificationTokenRepository
+                .findByUserIdAndType(userId, "FORGOT_PASSWORD")
+                .orElse(null);
+
+        // 🔹 Nếu OTP cũ vẫn còn hạn → chặn spam
+        if (existingToken != null && existingToken.getExpiresAt().isAfter(LocalDateTime.now())) {
+            long secondsLeft = Duration.between(LocalDateTime.now(), existingToken.getExpiresAt()).getSeconds();
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(Map.of("message", "Vui lòng đợi " + secondsLeft + " giây nữa để yêu cầu OTP mới"));
+        }
+
+        // 🔹 Nếu có OTP cũ nhưng đã hết hạn → xóa
         verificationTokenRepository.deleteByUserIdAndType(userId, "FORGOT_PASSWORD");
+
+        // 🔹 Tạo OTP mới
         String otp = generateOtp();
         LocalDateTime createdAt = LocalDateTime.now();
-        LocalDateTime expiresAt = createdAt.plusMinutes(15);
+        LocalDateTime expiresAt = createdAt.plusMinutes(5);
 
         VerificationToken vt = VerificationToken.builder()
                 .token(otp)
@@ -298,24 +314,28 @@ public class AuthenticationController {
                 .build();
         verificationTokenRepository.save(vt);
 
+        // 🔹 Gửi email OTP
         SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("huynhthibaotran276273@gmail.com");
         message.setTo(email);
         message.setSubject("Mã OTP khôi phục mật khẩu");
-        message.setText(
-                String.format(
-                        "Xin chào %s,\n\nBạn đang yêu cầu lấy lại mật khẩu cho tài khoản của mình.\n" +
-                                "Mã OTP của bạn là: %s\n" +
-                                "Mã này có hiệu lực trong 15 phút.\n\n" +
-                                "Trân trọng.",
-                        user.getUsername(), otp
-                )
-        );
+        message.setText(String.format(
+                "Xin chào %s,\n\nBạn đang yêu cầu lấy lại mật khẩu cho tài khoản của mình.\n" +
+                        "Mã OTP của bạn là: %s\n" +
+                        "Mã này có hiệu lực trong 15 phút.\n\n" +
+                        "Trân trọng.",
+                user.getUsername(), otp
+        ));
 
         mailSender.send(message);
 
         log.info("OTP sent to {}: {}", email, otp);
-        return ResponseEntity.ok(Map.of("message", "Mã OTP đã được gửi đến email của bạn"));
+        return ResponseEntity.ok(Map.of(
+                "message", "Mã OTP đã được gửi đến email của bạn",
+                "success", true
+        ));
     }
+
 
     @PostMapping("/resend-otp")
     @Transactional

@@ -5,6 +5,7 @@ import com.example.infinityweb_be.domain.User;
 import com.example.infinityweb_be.domain.dto.RegisterDTO;
 import com.example.infinityweb_be.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,6 +24,9 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final VerificationTokenService tokenService; // ✅ Dùng service thay vì repo
     private final MailService mailService;
+    @Value("${frontend.base-url}")
+    private String frontendBaseUrl;
+
 
     public User handleGetAccountByEmail(String email) {
         return userRepository.findByEmail(email).orElse(null);
@@ -71,7 +75,7 @@ public class UserService {
         // ✅ Tạo token và lưu vào DB qua VerificationTokenService
         VerificationToken token = tokenService.createVerificationToken(user);
 
-        String link = "http://localhost:3000/verify-email?token=" + token.getToken();
+        String link = frontendBaseUrl + "/verify-email?token=" + token.getToken();
         String subject = "Xác thực tài khoản InfinityWeb";
         String body = "Xin chào " + user.getUsername() + ",\n\n" +
                 "Vui lòng bấm vào đường link dưới đây để xác thực tài khoản:\n" +
