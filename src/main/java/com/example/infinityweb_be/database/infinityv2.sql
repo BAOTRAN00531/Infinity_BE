@@ -346,45 +346,50 @@ CREATE TABLE dbo.Phrase_Lexicon_Map
 GO
 
 -- 2.22. Orders
+
+
+    DROP TABLE dbo.Orders;
+    DROP TABLE dbo.Order_Details;
+
+
+-- Bảng Orders (không có course_id)
 CREATE TABLE dbo.Orders
 (
     id             INT IDENTITY (1,1) PRIMARY KEY,
     user_id        INT            NOT NULL,
-    course_id      INT            NOT NULL,
     order_code     VARCHAR(50)    NOT NULL UNIQUE,
     order_date     DATETIME       NOT NULL DEFAULT GETDATE(),
     payment_method VARCHAR(20)    NOT NULL,
     status         VARCHAR(20)    NOT NULL DEFAULT 'PENDING',
     total_amount   DECIMAL(18, 2) NOT NULL DEFAULT 0,
-    expiry_date    DATE           NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES dbo.Users (id),
-    FOREIGN KEY (course_id) REFERENCES dbo.Courses (id)
-)
+    expiry_date    DATE           NOT NULL
+);
 GO
 
--- 2.23. Order Details
+-- Bảng Order_Details (có course_id)
 CREATE TABLE dbo.Order_Details
 (
     id           INT IDENTITY (1,1) PRIMARY KEY,
     order_id     INT            NOT NULL,
+    course_id      INT            NOT NULL,
     service_name NVARCHAR(255)  NOT NULL,
     service_desc NVARCHAR(500)  NULL,
-    price        DECIMAL(18, 2) NOT NULL,
-    FOREIGN KEY (order_id) REFERENCES dbo.Orders (id)
-)
+    price        DECIMAL(18, 2) NOT NULL
+);
 GO
 
-ALTER TABLE orders
-    ADD CONSTRAINT uc_orders_order_code UNIQUE (order_code)
+-- Bước 5: Thêm lại các ràng buộc khóa ngoại (gộp chung)
+ALTER TABLE dbo.Orders
+    ADD CONSTRAINT FK_Orders_User FOREIGN KEY (user_id) REFERENCES dbo.Users (id);
 GO
 
-ALTER TABLE orders
-    ADD CONSTRAINT FK_ORDERS_ON_COURSE FOREIGN KEY (course_id) REFERENCES courses (id)
+ALTER TABLE dbo.Order_Details
+    ADD CONSTRAINT FK_OrderDetails_Order FOREIGN KEY (order_id) REFERENCES dbo.Orders (id),
+        CONSTRAINT FK_OrderDetails_Course FOREIGN KEY (course_id) REFERENCES dbo.Courses (id);
 GO
 
-ALTER TABLE orders
-    ADD CONSTRAINT FK_ORDERS_ON_USER FOREIGN KEY (user_id) REFERENCES users (id)
-GO
+
+Select * from dbo.Enrollment;
 
 --------------------------------------------------------------------------------
 -- 4. TRIGGERS
@@ -527,9 +532,6 @@ VALUES (1, N'Hà Nội'),
 GO
 
 -- 4.11. Sample Order
-INSERT INTO dbo.Orders (user_id, course_id, order_code, payment_method, status, expiry_date, total_amount)
-VALUES (1, 1, 'ORD202507230001', 'VNPAY', 'PAID', DATEADD(YEAR, 1, GETDATE()), 1000000)
-GO
 
 INSERT INTO dbo.Order_Details (order_id, service_name, service_desc, price)
 VALUES (1, N'Unlock full khóa học 1 năm', N'Truy cập khoá học trong 1 năm', 1000000)

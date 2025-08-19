@@ -11,6 +11,7 @@ import com.example.infinityweb_be.repository.CourseRepository;
 import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
 import com.example.infinityweb_be.repository.LearningModuleRepository;
+import com.example.infinityweb_be.repository.enrollment.EnrollmentRepository;
 import com.example.infinityweb_be.repository.order.OrderRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ public class CourseService {
     private final LearningModuleRepository learningModuleRepository;
     private final LessonRepository lessonRepository;
     private final OrderRepository orderRepository;
+    private final EnrollmentRepository enrollmentRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -132,9 +134,9 @@ public class CourseService {
 //    ===========HIEN THI COURSE STUDENT=============
 
     public LearningCourseDto getCourseForStudent(Integer courseId, Integer userId) {
-        // 1. Kiểm tra học viên đã mua khóa học chưa
-        boolean hasPurchased = orderRepository.existsByUserIdAndCourseIdAndStatus(userId, courseId, OrderStatus.PAID);
-        if (!hasPurchased) {
+        // 1. Kiểm tra học viên đã được ghi danh vào khóa học chưa
+        boolean isEnrolled = enrollmentRepository.existsByUserIdAndCourseId(userId, courseId);
+        if (!isEnrolled) {
             throw new AccessDeniedException("Bạn chưa mua khóa học này.");
         }
 

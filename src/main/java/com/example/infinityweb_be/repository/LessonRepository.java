@@ -7,8 +7,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
 import java.util.List;
 
+@Repository
 public interface LessonRepository extends JpaRepository<Lesson, Integer> {
     List<Lesson> findByModule_Id(Integer moduleId);
 
@@ -25,12 +28,22 @@ public interface LessonRepository extends JpaRepository<Lesson, Integer> {
 
     // --------- Bổ sung -----------
 
-    boolean existsByModule_IdAndOrderIndex(Integer moduleId, Integer orderIndex);
+//    boolean existsByModule_IdAndOrderIndex(Integer moduleId, Integer orderIndex);
+//
+//    @Modifying
+//    @Transactional
+//    @Query("UPDATE Lesson l SET l.orderIndex = l.orderIndex + 1 WHERE l.module.id = :moduleId AND l.orderIndex >= :orderIndex")
+//    void incrementOrderIndexFrom(@Param("moduleId") Integer moduleId, @Param("orderIndex") Integer orderIndex);
 
-    @Modifying
-    @Transactional
-    @Query("UPDATE Lesson l SET l.orderIndex = l.orderIndex + 1 WHERE l.module.id = :moduleId AND l.orderIndex >= :orderIndex")
-    void incrementOrderIndexFrom(@Param("moduleId") Integer moduleId, @Param("orderIndex") Integer orderIndex);
+
+
+    @Query("SELECT COUNT(l) FROM Lesson l JOIN l.module m WHERE m.course.id = :courseId")
+    long countByCourseId(int courseId);
+
+
+    // ✅ VỊ TRÍ MỚI: Thêm phương thức tìm kiếm IDs vào đây
+    @Query("SELECT l.id FROM Lesson l JOIN l.module m WHERE m.course.id = :courseId")
+    List<Integer> findLessonIdsByCourseId(@Param("courseId") int courseId);
 
 }
 //package com.example.infinityweb_be.repository;

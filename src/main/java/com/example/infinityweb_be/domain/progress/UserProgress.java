@@ -14,10 +14,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserProgress {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
@@ -27,9 +26,9 @@ public class UserProgress {
     private String entityType; // "course", "module", "lesson"
 
     @Column(name = "entity_id")
-    private Integer entityId;  // id của course/module/lesson tương ứng
+    private Integer entityId;
 
-    @Column(name = "progress_percentage")
+    @Column(name = "progress_percentage", precision = 5, scale = 2)
     private BigDecimal progressPercentage;
 
     @Column(name = "last_updated")

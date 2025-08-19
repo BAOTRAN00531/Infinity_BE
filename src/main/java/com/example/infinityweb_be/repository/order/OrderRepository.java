@@ -15,36 +15,17 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     Optional<Order> findByOrderCode(String orderCode);
 
+    // ✅ XÓA phương thức này
+    // @Query(...)
+    // boolean hasValidOrderByUserId(@Param("userId") Integer userId, @Param("courseId") Integer courseId);
 
-    @Query("""
-        SELECT COUNT(o) > 0 FROM Order o
-        WHERE o.user.id = :userId
-          AND o.course.id = :courseId
-          AND o.status = 'PAID'
-          AND o.expiryDate >= CURRENT_DATE
-    """)
-    boolean hasValidOrderByUserId(@Param("userId") Integer userId,
-                                  @Param("courseId") Integer courseId);
-
-    @Query("""
-        SELECT COUNT(o) > 0 FROM Order o
-        WHERE o.user.username = :username
-          AND o.course.id = :courseId
-          AND o.status = 'PAID'
-          AND o.expiryDate >= CURRENT_DATE
-    """)
-    boolean hasValidOrder(@Param("username") String username,
-                          @Param("courseId") Integer courseId);
-
-    boolean existsByUserIdAndCourseIdAndStatus(Integer userId, Integer courseId, OrderStatus status);
-
-//    List<Order> findAllByUserId(Integer userId);
+    // ✅ XÓA phương thức này
+    // @Query(...)
+    // boolean hasValidOrder(@Param("username") String username, @Param("courseId") Integer courseId);
 
     List<Order> findByUserId(Integer userId);
     List<Order> findByUserIdAndStatus(Integer userId, OrderStatus status);
-
 }
-
 
 
 

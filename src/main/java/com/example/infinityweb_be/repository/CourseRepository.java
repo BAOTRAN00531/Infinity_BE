@@ -30,17 +30,17 @@ public interface CourseRepository extends JpaRepository<Course, Integer> {
             ELSE (COUNT(DISTINCT up) * 1.0 / COUNT(DISTINCT m.id)) * 100.0 
         END
     )
-    FROM Order o
-    JOIN o.course c
+    FROM Enrollment e 
+    JOIN e.course c
     LEFT JOIN c.modules m
     LEFT JOIN UserProgress up ON 
         up.entityType = 'module' AND 
         up.entityId = m.id AND 
         up.user.id = :userId AND 
         up.progressPercentage = 100.0
-    WHERE o.user.id = :userId AND o.status = 'PAID'
+    WHERE e.user.id = :userId  
     GROUP BY c.id, c.name, c.thumbnail, c.price
-""")
+    """)
     List<StudentCourseProgressDto> findStudentDashboardCourses(@Param("userId") Integer userId);
 
 
