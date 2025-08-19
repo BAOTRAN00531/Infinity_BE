@@ -11,7 +11,9 @@ import com.example.infinityweb_be.repository.CourseRepository;
 import com.example.infinityweb_be.repository.LearningModuleRepository;
 import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
+import com.example.infinityweb_be.repository.enrollment.EnrollmentRepository;
 import com.example.infinityweb_be.repository.order.OrderRepository;
+import com.example.infinityweb_be.service.Enrollment.EnrollmentService;
 import com.example.infinityweb_be.service.UserService;
 import com.example.infinityweb_be.service.order.OrderService;
 import jakarta.persistence.EntityManager;
@@ -34,6 +36,7 @@ public class LearningModuleService {
     private final LessonRepository lessonRepository;
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
+    private final EnrollmentRepository enrollmentRepository;
 
     private final OrderService orderService; // 👈 thêm dòng này
     private final LearningModuleMapper moduleMapper; // 👈 thêm nếu dùng mapper
@@ -180,8 +183,8 @@ public class LearningModuleService {
 
 //====== STUDENT LESSON ======//
 public List<LearningModuleDto> getModulesByCourseForStudent(Integer courseId, Integer userId) {
-    boolean hasPurchased = orderRepository.existsByUserIdAndCourseIdAndStatus(userId, courseId, OrderStatus.PAID);
-    if (!hasPurchased) {
+    boolean isEnrolled = enrollmentRepository.existsByUserIdAndCourseId(userId, courseId);
+    if (!isEnrolled) {
         throw new AccessDeniedException("Bạn chưa mua khóa học này.");
     }
 
@@ -190,7 +193,6 @@ public List<LearningModuleDto> getModulesByCourseForStudent(Integer courseId, In
             .map(this::toDto)
             .collect(Collectors.toList());
 }
-
 
 }
 

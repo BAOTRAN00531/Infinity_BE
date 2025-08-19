@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import java.security.Principal;
 import java.util.List;
 
@@ -28,9 +27,8 @@ public class StudentModuleController {
             @PathVariable Integer courseId,
             Principal principal
     ) {
-            Integer userId = userService.getUserIdFromPrincipal(principal);
-
-        // Kiểm tra quyền truy cập hoặc đã mua khóa học, tùy logic
+        Integer userId = userService.getUserIdFromPrincipal(principal);
+        // Logic kiểm tra đã ở trong service
         List<LearningModuleDto> modules = learningModuleService.getModulesByCourseForStudent(courseId, userId);
         return ResponseEntity.ok(modules);
     }

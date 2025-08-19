@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import java.security.Principal;
 import java.util.List;
 
@@ -29,6 +28,7 @@ public class StudentLessonController {
             Principal principal
     ) {
         Integer userId = userService.getUserIdFromPrincipal(principal);
+        // Logic kiểm tra đã ở trong service
         List<LessonDto> lessons = lessonService.getLessonsByModuleForStudent(moduleId, userId);
         return ResponseEntity.ok(lessons);
     }

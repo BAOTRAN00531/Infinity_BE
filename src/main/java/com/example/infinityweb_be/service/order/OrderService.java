@@ -12,13 +12,17 @@ import com.example.infinityweb_be.domain.dto.order.OrderStatus;
 import com.example.infinityweb_be.repository.CourseRepository;
 import com.example.infinityweb_be.repository.UserRepository;
 
+import com.example.infinityweb_be.repository.enrollment.EnrollmentRepository;
+import com.example.infinityweb_be.repository.order.OrderDetailRepository;
 import com.example.infinityweb_be.repository.order.OrderRepository;
 
+import com.example.infinityweb_be.service.Enrollment.EnrollmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -32,42 +36,51 @@ import java.util.stream.Collectors;
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final EnrollmentRepository enrollmentRepository;
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
-
+    private final EnrollmentService enrollmentService;
+    private final OrderDetailRepository orderDetailRepository; // ✅ Cần thêm dòng này
 
 //Tạo đơn hàng mới
-    public OrderResponse createOrder(CreateOrderRequest req) {
+@Transactional // ✅ Thêm @Transactional để đảm bảo tất cả hoạt động được thực hiện trong một giao dịch
+public OrderResponse createOrder(CreateOrderRequest req) {
+    Course course = courseRepository.findById(req.getCourseId())
+            .orElseThrow(() -> new RuntimeException("Course not found"));
 
-        Course course = courseRepository.findById(req.getCourseId())
-                .orElseThrow(() -> new RuntimeException("Course not found"));
+    User user = userRepository.findById(req.getUserId())
+            .orElseThrow(() -> new RuntimeException("User not found"));
 
-        User user = userRepository.findById(req.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    Order order = Order.builder()
+            .user(user)
+            .orderCode(generateOrderCode())
+            .orderDate(LocalDateTime.now())
+            .expiryDate(LocalDateTime.now().plusMonths(12))
+            .status(OrderStatus.PENDING)
+            .paymentMethod(req.getPaymentMethod())
+            .totalAmount(course.getPrice())
+            .build();
 
-        Order order = Order.builder()
-                .course(course)
-                .user(user)
-                .orderCode(generateOrderCode())
-                .orderDate(LocalDateTime.now())
-                .expiryDate(LocalDateTime.now().plusMonths(12))
-                .status(OrderStatus.PENDING)
-                .paymentMethod(req.getPaymentMethod()) // OK vì cùng kiểu enum
-                .totalAmount(course.getPrice())
-                .build();
+    // Lưu Order trước để có ID
+    orderRepository.save(order);
 
-        OrderDetail detail = OrderDetail.builder()
-                .order(order)
-                .serviceName("Mua khóa học: " + course.getName())
-                .serviceDesc("Truy cập toàn bộ nội dung khóa học \"" + course.getName() + "\" trong 12 tháng.")
-                .price(course.getPrice())
-                .build();
+    // Khởi tạo một đối tượng OrderDetail và liên kết với Order đã lưu
+    OrderDetail detail = new OrderDetail();
+    detail.setOrder(order);
+    detail.setCourse(course);
+    detail.setServiceName("Mua khóa học: " + course.getName());
+    detail.setServiceDesc("Truy cập toàn bộ nội dung khóa học \"" + course.getName() + "\" trong 12 tháng.");
+    detail.setPrice(course.getPrice());
 
-        order.setOrderDetails(List.of(detail));
-        Order saved = orderRepository.save(order);
-        return mapToResponse(saved);
+    // Lưu OrderDetail
+    orderDetailRepository.save(detail); // ✅ Cần inject và sử dụng OrderDetailRepository
 
-    }
+    // Cập nhật lại danh sách OrderDetails trong đối tượng Order
+    order.getOrderDetails().add(detail);
+
+    // Trả về kết quả
+    return mapToResponse(order);
+}
 
 //    public void updateOrderStatus(String orderCode, String status) {
 //        Order order = orderRepository.findByOrderCode(orderCode)
@@ -100,11 +113,14 @@ public class OrderService {
         return mapToResponse(order);
     }
 
-//Mapping từ Entity → DTO
+    //Mapping từ Entity → DTO
     private OrderResponse mapToResponse(Order order) {
         List<OrderDetailDTO> details = order.getOrderDetails().stream()
                 .map(d -> new OrderDetailDTO(d.getServiceName(), d.getServiceDesc(), d.getPrice()))
                 .collect(Collectors.toList());
+
+        // ✅ Get course name from the first OrderDetail
+        String courseName = order.getOrderDetails().get(0).getCourse().getName();
 
         return new OrderResponse(
                 order.getOrderCode(),
@@ -112,9 +128,9 @@ public class OrderService {
                 order.getTotalAmount(),
                 order.getPaymentMethod().name(),
                 order.getOrderDate(),
-                order.getCourse().getName(),
+                courseName, // ✅ Use the courseName variable
                 details,
-                order.getUser().getUsername() // ← thêm
+                order.getUser().getUsername()
         );
     }
 
@@ -129,7 +145,7 @@ public class OrderService {
 
 //Kiểm tra người dùng đã mua khóa học chưa
     public boolean hasUserPurchasedCourse(Integer userId, Integer courseId) {
-        return orderRepository.hasValidOrderByUserId(userId, courseId);
+        return enrollmentRepository.existsByUserIdAndCourseId(userId, courseId);
     }
 
 
@@ -179,18 +195,21 @@ public class OrderService {
     }
 
 //Duyệt đơn hàng
-    public void approveOrder(String orderCode) {
-        Order order = orderRepository.findByOrderCode(orderCode)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn"));
+public void approveOrder(String orderCode) {
+    Order order = orderRepository.findByOrderCode(orderCode)
+            .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn"));
 
-        if (order.getStatus() != OrderStatus.PENDING) {
-            throw new IllegalStateException("Chỉ duyệt đơn ở trạng thái PENDING");
-        }
-
-        order.setStatus(OrderStatus.PAID);
-        orderRepository.save(order);
-
+    if (order.getStatus() != OrderStatus.PENDING) {
+        throw new IllegalStateException("Chỉ duyệt đơn ở trạng thái PENDING");
     }
+
+    order.setStatus(OrderStatus.PAID);
+    orderRepository.save(order);
+
+    // ✅ Get the course from the first order detail
+    Course course = order.getOrderDetails().get(0).getCourse();
+    enrollmentService.createEnrollment(order.getUser(), course);
+}
 
 
 

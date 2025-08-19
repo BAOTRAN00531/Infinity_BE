@@ -1,17 +1,15 @@
+// src/main/java/com/example/infinityweb_be/domain/Order.java
 package com.example.infinityweb_be.domain;
 
-import com.example.infinityweb_be.domain.course.Course;
 import com.example.infinityweb_be.domain.dto.order.OrderStatus;
 import com.example.infinityweb_be.domain.dto.order.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
 
 @Entity
 @Table(name = "orders")
@@ -46,14 +44,11 @@ public class Order {
     @Column(name = "total_amount", nullable = false)
     private BigDecimal totalAmount;
 
-    @ManyToOne
-    @JoinColumn(name = "course_id", nullable = false)
-    private Course course;
-
     @Column(name = "expiry_date", nullable = false)
     private LocalDateTime expiryDate;
 
-
+    // ✅ Đảm bảo cascade = CascadeType.ALL để khi lưu Order, OrderDetail cũng được lưu.
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default // ✅ Khởi tạo mặc định khi sử dụng builder
     private List<OrderDetail> orderDetails = new ArrayList<>();
 }
