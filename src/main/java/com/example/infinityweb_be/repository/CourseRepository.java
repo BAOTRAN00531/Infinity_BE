@@ -23,22 +23,23 @@ public interface CourseRepository extends JpaRepository<Course, Integer> {
         c.name,
         c.thumbnail,
         c.price,
-        COUNT(DISTINCT m.id),
-        COUNT(DISTINCT up),
-        CASE 
-            WHEN COUNT(DISTINCT m.id) = 0 THEN 0.0 
-            ELSE (COUNT(DISTINCT up) * 1.0 / COUNT(DISTINCT m.id)) * 100.0 
+        (SELECT COUNT(m) FROM LearningModule m WHERE m.course.id = c.id),
+        CAST(0 AS long),
+        CASE
+            WHEN (SELECT COUNT(l) FROM Lesson l JOIN l.module m WHERE m.course.id = c.id) = 0 THEN 0.0
+            ELSE (CAST(COUNT(up.id) AS double) / (SELECT COUNT(l2) FROM Lesson l2 JOIN l2.module m2 WHERE m2.course.id = c.id)) * 100.0
         END
     )
-    FROM Enrollment e 
+    FROM Enrollment e
     JOIN e.course c
     LEFT JOIN c.modules m
+    LEFT JOIN m.lessons l
     LEFT JOIN UserProgress up ON 
-        up.entityType = 'module' AND 
-        up.entityId = m.id AND 
+        up.entityType = 'lesson' AND 
+        up.entityId = l.id AND 
         up.user.id = :userId AND 
         up.progressPercentage = 100.0
-    WHERE e.user.id = :userId  
+    WHERE e.user.id = :userId
     GROUP BY c.id, c.name, c.thumbnail, c.price
     """)
     List<StudentCourseProgressDto> findStudentDashboardCourses(@Param("userId") Integer userId);

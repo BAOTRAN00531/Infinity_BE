@@ -1,5 +1,6 @@
 package com.example.infinityweb_be.service.course;
 
+import com.example.infinityweb_be.domain.LearningModule;
 import com.example.infinityweb_be.domain.Lesson;
 import com.example.infinityweb_be.domain.course.Course;
 import com.example.infinityweb_be.domain.dto.CourseDto;
@@ -7,12 +8,14 @@ import com.example.infinityweb_be.domain.dto.LessonDto;
 import com.example.infinityweb_be.domain.dto.modules.LearningModuleDto;
 import com.example.infinityweb_be.domain.dto.order.OrderStatus;
 import com.example.infinityweb_be.domain.dto.student.LearningCourseDto;
+import com.example.infinityweb_be.domain.dto.student.StudentCourseProgressDto;
 import com.example.infinityweb_be.repository.CourseRepository;
 import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
 import com.example.infinityweb_be.repository.LearningModuleRepository;
 import com.example.infinityweb_be.repository.enrollment.EnrollmentRepository;
 import com.example.infinityweb_be.repository.order.OrderRepository;
+import com.example.infinityweb_be.repository.progress.UserProgressRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -39,6 +42,7 @@ public class CourseService {
     private final LessonRepository lessonRepository;
     private final OrderRepository orderRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final UserProgressRepository userProgressRepository; // ✅ Inject repository
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -171,6 +175,39 @@ public class CourseService {
                 course.getThumbnail(),
                 moduleDtos
         );
+    }
+
+    public List<StudentCourseProgressDto> getStudentDashboardCourses(Integer userId) {
+
+        // Bước 1: Lấy danh sách DTO với tiến độ tổng thể từ truy vấn đã sửa.
+        List<StudentCourseProgressDto> courses = courseRepository.findStudentDashboardCourses(userId);
+
+        // Bước 2: Vòng lặp qua danh sách để tính toán completedModules
+        return courses.stream().map(courseDto -> {
+
+            // Lấy tất cả các module của khóa học
+            List<LearningModule> modules = learningModuleRepository.findByCourseId(courseDto.getCourseId());
+            long completedModulesCount = 0;
+
+            for (LearningModule module : modules) {
+                // Đếm tổng số bài học trong module
+                Long totalLessonsInModule = lessonRepository.countByModule_Id(module.getId());
+
+                if (totalLessonsInModule > 0) {
+                    // Đếm số bài học đã hoàn thành của user trong module
+                    Long completedLessonsInModule = userProgressRepository.countCompletedLessonsInModule(userId, module.getId());
+
+                    // Nếu số bài học đã hoàn thành bằng tổng số bài học, module đó đã xong
+                    if (completedLessonsInModule != null && completedLessonsInModule.equals(totalLessonsInModule)) {
+                        completedModulesCount++;
+                    }
+                }
+            }
+
+            // Cập nhật giá trị completedModules vào DTO
+            courseDto.setCompletedModules(completedModulesCount);
+            return courseDto;
+        }).collect(Collectors.toList());
     }
 
 }
