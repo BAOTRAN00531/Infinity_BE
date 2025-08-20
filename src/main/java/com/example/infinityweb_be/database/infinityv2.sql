@@ -73,7 +73,7 @@ CREATE TABLE dbo.Courses
     duration    NVARCHAR(50)   NULL,
     status      NVARCHAR(20)   NULL,
     price       DECIMAL(18, 4) NULL,
-    thumbnail   VARCHAR(255)   NULL;
+    thumbnail   VARCHAR(255)   NULL,
     FOREIGN KEY (language_id) REFERENCES dbo.Languages (id),
     FOREIGN KEY (created_by) REFERENCES dbo.Users (id),
     FOREIGN KEY (updated_by) REFERENCES dbo.Users (id)
@@ -122,6 +122,7 @@ CREATE TABLE dbo.Lessons
     CONSTRAINT UQ_Lessons_Module_Order UNIQUE (module_id, [order])
 )
 GO
+
 
 -- 2.7. Enrollment
 CREATE TABLE dbo.Enrollment
@@ -200,6 +201,9 @@ CREATE TABLE dbo.Question_Answers
     FOREIGN KEY (question_id) REFERENCES dbo.Questions (id)
 )
 GO
+
+
+select * from User_Progress;
 
 -- 2.12. User Progress
 CREATE TABLE dbo.User_Progress

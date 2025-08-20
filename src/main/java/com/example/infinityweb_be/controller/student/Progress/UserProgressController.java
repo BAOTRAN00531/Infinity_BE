@@ -38,4 +38,16 @@ public class UserProgressController {
 
         return ResponseEntity.ok(progress);
     }
+
+    @PostMapping("/lesson/complete/{lessonId}")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<Void> completeLesson(
+            Principal principal,
+            @PathVariable Integer lessonId
+    ) {
+        Integer userId = userService.getUserIdFromPrincipal(principal);
+        userProgressService.markLessonAsCompleted(userId, lessonId);
+        return ResponseEntity.ok().build();
+    }
+
 }
