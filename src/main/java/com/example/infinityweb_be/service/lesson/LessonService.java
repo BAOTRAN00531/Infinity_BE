@@ -13,6 +13,7 @@ import com.example.infinityweb_be.repository.enrollment.EnrollmentRepository;
 import com.example.infinityweb_be.repository.order.OrderRepository;
 import com.example.infinityweb_be.repository.question.QuestionRepository;
 import com.example.infinityweb_be.service.order.OrderService;
+import com.example.infinityweb_be.util.YoutubeUrlConverter;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.PersistenceContext;
@@ -37,6 +38,7 @@ public class LessonService {
     private final QuestionRepository questionRepository;
     private  final OrderRepository orderRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final YoutubeUrlConverter youtubeUrlConverter; // ✅ Thêm dòng này
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -78,6 +80,11 @@ public class LessonService {
         lesson.setName(dto.getName());
         lesson.setDescription(dto.getDescription());
         lesson.setContent(dto.getContent());
+
+        // ✅ SỬA LẠI: Set videoUrl từ DTO vào Entity, và chuyển đổi sang embed URL nếu cần
+        String processedVideoUrl = youtubeUrlConverter.convertToEmbedUrl(dto.getVideoUrl());
+        lesson.setVideoUrl(processedVideoUrl); // Dùng URL đã được xử lý
+
         lesson.setType(dto.getType());
         lesson.setDuration(dto.getDuration());
         lesson.setStatus(dto.getStatus());
@@ -102,6 +109,13 @@ public class LessonService {
         if (dto.getName() != null) lesson.setName(dto.getName());
         if (dto.getDescription() != null) lesson.setDescription(dto.getDescription());
         if (dto.getContent() != null) lesson.setContent(dto.getContent());
+
+        // ✅ SỬA LẠI: Cập nhật videoUrl từ DTO, và chuyển đổi sang embed URL nếu cần
+        if (dto.getVideoUrl() != null) {
+            String processedVideoUrl = youtubeUrlConverter.convertToEmbedUrl(dto.getVideoUrl());
+            lesson.setVideoUrl(processedVideoUrl); // Dùng URL đã được xử lý
+        }
+
         if (dto.getType() != null) lesson.setType(dto.getType());
         if (dto.getOrderIndex() != null) lesson.setOrderIndex(dto.getOrderIndex());
         if (dto.getDuration() != null) lesson.setDuration(dto.getDuration());
@@ -128,6 +142,7 @@ public class LessonService {
         dto.setName(lesson.getName());
         dto.setDescription(lesson.getDescription());
         dto.setContent(lesson.getContent());
+        dto.setVideoUrl(lesson.getVideoUrl()); // ✅ Set videoUrl vào DTO
         dto.setType(lesson.getType());
         dto.setOrderIndex(lesson.getOrderIndex());
         dto.setDuration(lesson.getDuration());

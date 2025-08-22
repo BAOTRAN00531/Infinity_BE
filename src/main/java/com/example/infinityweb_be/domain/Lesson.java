@@ -37,6 +37,9 @@ public class Lesson {
     @Column(columnDefinition = "NVARCHAR(MAX)")
     private String content;
 
+    @Column(name = "video_url", length = 255) // ✅ Thêm trường video_url
+    private String videoUrl;
+
     @Column(name = "type", nullable = false, length = 20)
     private String type;
 
