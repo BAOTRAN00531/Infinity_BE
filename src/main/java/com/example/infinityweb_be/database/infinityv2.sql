@@ -124,6 +124,11 @@ CREATE TABLE dbo.Lessons
 GO
 
 
+ALTER TABLE dbo.Lessons
+    ADD video_url NVARCHAR(255) NULL;
+
+
+
 -- 2.7. Enrollment
 CREATE TABLE dbo.Enrollment
 (
