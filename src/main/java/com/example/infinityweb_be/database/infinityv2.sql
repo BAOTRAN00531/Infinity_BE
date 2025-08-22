@@ -1,8 +1,8 @@
 ﻿--------------------------------------------------------------------------------
 -- 1. TẠO DATABASE VÀ CHUYỂN CONTEXT
 --------------------------------------------------------------------------------
--- CREATE DATABASE InfinityWeb
--- GO
+CREATE DATABASE InfinityWeb
+GO
 USE InfinityWeb
 GO
 
@@ -73,7 +73,7 @@ CREATE TABLE dbo.Courses
     duration    NVARCHAR(50)   NULL,
     status      NVARCHAR(20)   NULL,
     price       DECIMAL(18, 4) NULL,
-    thumbnail   VARCHAR(255)   NULL;
+    thumbnail   VARCHAR(255)   NULL,
     FOREIGN KEY (language_id) REFERENCES dbo.Languages (id),
     FOREIGN KEY (created_by) REFERENCES dbo.Users (id),
     FOREIGN KEY (updated_by) REFERENCES dbo.Users (id)
