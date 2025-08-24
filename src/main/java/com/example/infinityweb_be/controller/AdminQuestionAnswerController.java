@@ -2,8 +2,8 @@
 package com.example.infinityweb_be.controller;
 
 import com.example.infinityweb_be.common.AuthHelper;
-import com.example.infinityweb_be.domain.dto.question.AnswerCreateDto;
-import com.example.infinityweb_be.domain.dto.question.AnswerResponseDto;
+import com.example.infinityweb_be.domain.dto.question.admin.AnswerCreateDto;
+import com.example.infinityweb_be.domain.dto.question.admin.AnswerResponseDto;
 import com.example.infinityweb_be.service.question.QuestionAnswerService;
 import com.example.infinityweb_be.repository.UserRepository;
 import jakarta.validation.Valid;

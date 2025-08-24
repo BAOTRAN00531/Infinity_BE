@@ -55,6 +55,14 @@ public class Lesson {
     @Column(nullable = false, length = 20)
     private String status;
 
+    /**
+     * ✅ Trường để đánh dấu lesson đã hoàn thành hay chưa
+     * Mapped to column is_completed in DB
+     */
+    @Column(name = "is_completed", nullable = false, columnDefinition = "BIT DEFAULT 0")
+    @Builder.Default
+    private Boolean isCompleted = false;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
@@ -68,4 +76,5 @@ public class Lesson {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
 }

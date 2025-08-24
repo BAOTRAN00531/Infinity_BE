@@ -3,8 +3,8 @@ package com.example.infinityweb_be.service.question;
 
 import com.example.infinityweb_be.domain.Question;
 import com.example.infinityweb_be.domain.QuestionAnswer;
-import com.example.infinityweb_be.domain.dto.question.AnswerCreateDto;
-import com.example.infinityweb_be.domain.dto.question.AnswerResponseDto;
+import com.example.infinityweb_be.domain.dto.question.admin.AnswerCreateDto;
+import com.example.infinityweb_be.domain.dto.question.admin.AnswerResponseDto;
 import com.example.infinityweb_be.repository.question.QuestionAnswerRepository;
 import com.example.infinityweb_be.repository.question.QuestionRepository;
 import jakarta.persistence.EntityManager;

@@ -3,8 +3,8 @@ package com.example.infinityweb_be.controller;
 
 
 import com.example.infinityweb_be.common.AuthHelper;
-import com.example.infinityweb_be.domain.dto.question.OptionCreateDto;
-import com.example.infinityweb_be.domain.dto.question.OptionResponseDto;
+import com.example.infinityweb_be.domain.dto.question.admin.OptionCreateDto;
+import com.example.infinityweb_be.domain.dto.question.admin.OptionResponseDto;
 import com.example.infinityweb_be.repository.UserRepository;
 import com.example.infinityweb_be.service.question.QuestionOptionService;
 import jakarta.validation.Valid;

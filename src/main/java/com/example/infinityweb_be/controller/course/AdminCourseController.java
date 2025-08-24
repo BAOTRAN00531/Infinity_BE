@@ -29,11 +29,16 @@ public class AdminCourseController {
 //        return courseService.getAllCourses(); // Không cần login
 //    }
 
+    // ✅ Thêm endpoint GET course theo ID
+    @GetMapping("/{id}")
+    public CourseDto getCourseById(@PathVariable Integer id) {
+        return courseService.getDtoById(id);
+    }
+
     @GetMapping("/by-language/{languageId}")
     public List<Course> getCoursesByLanguage(@PathVariable Integer languageId) {
         return courseService.getCoursesByLanguage(languageId);
     }
-
 
     @PostMapping
     public Course create(@RequestBody Course course,

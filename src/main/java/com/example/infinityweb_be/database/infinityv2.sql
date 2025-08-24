@@ -100,6 +100,8 @@ CREATE TABLE dbo.Modules
 )
 GO
 
+select * from Lessons;
+
 -- 2.6. Lessons
 CREATE TABLE dbo.Lessons
 (
@@ -122,6 +124,9 @@ CREATE TABLE dbo.Lessons
     CONSTRAINT UQ_Lessons_Module_Order UNIQUE (module_id, [order])
 )
 GO
+
+ALTER TABLE dbo.Lessons
+    ADD is_completed BIT NOT NULL DEFAULT 0;
 
 
 ALTER TABLE dbo.Lessons

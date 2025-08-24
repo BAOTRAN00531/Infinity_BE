@@ -11,9 +11,10 @@ import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
 import com.example.infinityweb_be.repository.enrollment.EnrollmentRepository;
 import com.example.infinityweb_be.repository.order.OrderRepository;
+import com.example.infinityweb_be.repository.progress.UserProgressRepository;
 import com.example.infinityweb_be.repository.question.QuestionRepository;
 import com.example.infinityweb_be.service.order.OrderService;
-import com.example.infinityweb_be.util.YoutubeUrlConverter;
+//import com.example.infinityweb_be.util.YoutubeUrlConverter;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.PersistenceContext;
@@ -38,7 +39,8 @@ public class LessonService {
     private final QuestionRepository questionRepository;
     private  final OrderRepository orderRepository;
     private final EnrollmentRepository enrollmentRepository;
-    private final YoutubeUrlConverter youtubeUrlConverter; // ✅ Thêm dòng này
+//    private final YoutubeUrlConverter youtubeUrlConverter; // ✅ Thêm dòng này
+private final UserProgressRepository userProgressRepository; // ✅ THÊM repository này
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -82,8 +84,8 @@ public class LessonService {
         lesson.setContent(dto.getContent());
 
         // ✅ SỬA LẠI: Set videoUrl từ DTO vào Entity, và chuyển đổi sang embed URL nếu cần
-        String processedVideoUrl = youtubeUrlConverter.convertToEmbedUrl(dto.getVideoUrl());
-        lesson.setVideoUrl(processedVideoUrl); // Dùng URL đã được xử lý
+//        String processedVideoUrl = youtubeUrlConverter.convertToEmbedUrl(dto.getVideoUrl());
+        lesson.setVideoUrl(dto.getVideoUrl()); // Dùng URL đã được xử lý
 
         lesson.setType(dto.getType());
         lesson.setDuration(dto.getDuration());
@@ -112,8 +114,8 @@ public class LessonService {
 
         // ✅ SỬA LẠI: Cập nhật videoUrl từ DTO, và chuyển đổi sang embed URL nếu cần
         if (dto.getVideoUrl() != null) {
-            String processedVideoUrl = youtubeUrlConverter.convertToEmbedUrl(dto.getVideoUrl());
-            lesson.setVideoUrl(processedVideoUrl); // Dùng URL đã được xử lý
+//            String processedVideoUrl = youtubeUrlConverter.convertToEmbedUrl(dto.getVideoUrl());
+            lesson.setVideoUrl(dto.getVideoUrl()); // Dùng URL đã được xử lý
         }
 
         if (dto.getType() != null) lesson.setType(dto.getType());
@@ -158,6 +160,25 @@ public class LessonService {
 
 //====== LESSON STUDENT
 
+//    public List<LessonDto> getLessonsByModuleForStudent(Integer moduleId, Integer userId) {
+//        LearningModule module = moduleRepository.findById(moduleId)
+//                .orElseThrow(() -> new RuntimeException("Không tìm thấy module"));
+//
+//        Integer courseId = module.getCourse().getId();
+//
+//        boolean isEnrolled = enrollmentRepository.existsByUserIdAndCourseId(userId, courseId);
+//
+//        if (!isEnrolled) {
+//            throw new AccessDeniedException("Bạn chưa mua khóa học chứa module này.");
+//        }
+//
+//        return lessonRepository.findByModule_Id(moduleId)
+//                .stream()
+//                .map(this::toDto)
+//                .collect(Collectors.toList());
+//    }
+
+
     public List<LessonDto> getLessonsByModuleForStudent(Integer moduleId, Integer userId) {
         LearningModule module = moduleRepository.findById(moduleId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy module"));
@@ -170,12 +191,25 @@ public class LessonService {
             throw new AccessDeniedException("Bạn chưa mua khóa học chứa module này.");
         }
 
-        return lessonRepository.findByModule_Id(moduleId)
-                .stream()
-                .map(this::toDto)
+        // Lấy tất cả lessons trong module
+        List<Lesson> lessons = lessonRepository.findByModule_Id(moduleId);
+        List<Integer> lessonIds = lessons.stream()
+                .map(Lesson::getId)
+                .collect(Collectors.toList());
+
+        // ✅ Lấy danh sách completed lesson IDs chỉ với 1 query
+        List<Integer> completedLessonIds = userProgressRepository.findCompletedLessonIds(userId, lessonIds);
+
+        return lessons.stream()
+                .map(lesson -> {
+                    LessonDto dto = toDto(lesson);
+                    // ✅ Kiểm tra nhanh trong memory
+                    boolean isCompleted = completedLessonIds.contains(lesson.getId());
+                    dto.setIsCompleted(isCompleted);
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
-
 
 
 

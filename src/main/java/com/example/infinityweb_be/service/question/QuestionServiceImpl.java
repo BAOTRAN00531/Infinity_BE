@@ -3,7 +3,10 @@ package com.example.infinityweb_be.service.question;
 
 import com.example.infinityweb_be.domain.*;
 import com.example.infinityweb_be.domain.course.Course;
-import com.example.infinityweb_be.domain.dto.question.*;
+import com.example.infinityweb_be.domain.dto.question.admin.QuestionCreateDto;
+import com.example.infinityweb_be.domain.dto.question.admin.QuestionResponseDto;
+import com.example.infinityweb_be.domain.dto.question.admin.OptionCreateDto; // Thêm import
+import com.example.infinityweb_be.domain.dto.question.admin.AnswerCreateDto; // Thêm import
 import com.example.infinityweb_be.domain.mapper.QuestionMapper;
 import com.example.infinityweb_be.repository.*;
 import com.example.infinityweb_be.repository.question.QuestionAnswerRepository;
@@ -33,9 +36,11 @@ public class QuestionServiceImpl implements QuestionService {
     private final UserRepository userRepo;
     private final CourseRepository courseRepo;
 
-    //    private final QuestionMapper mapper;
     @Autowired
     private QuestionMapper mapper;
+
+    @PersistenceContext
+    private EntityManager em;
 
     public List<QuestionResponseDto> getAll() {
         List<Question> questions = questionRepo.findAll();
@@ -44,8 +49,7 @@ public class QuestionServiceImpl implements QuestionService {
                 .collect(Collectors.toList());
     }
 
-    @PersistenceContext
-    private EntityManager em;
+
 
     private void setSessionContext(int adminId) {
         em.createNativeQuery("EXEC sp_set_session_context 'user_id', :uid")
@@ -69,127 +73,150 @@ public class QuestionServiceImpl implements QuestionService {
                 .collect(Collectors.toList());
     }
 
+// QuestionServiceImpl.java (ĐÃ SỬA LỖI MAPPING)
+
+    // QuestionServiceImpl.java - Sửa method create
     @Override
     public QuestionResponseDto create(QuestionCreateDto dto, Integer adminId) {
         setSessionContext(adminId);
 
-        // Ánh xạ DTO sang entity
-        Question q = mapper.toEntity(dto);
+        Question question = new Question();
+        question.setQuestionText(dto.getQuestionText());
+        question.setDifficulty(dto.getDifficulty());
+        question.setPoints(dto.getPoints());
+        question.setCreatedBy(userRepo.getReferenceById(adminId));
+        question.setCreatedAt(LocalDateTime.now());
 
-        // Gán metadata
-        q.setCreatedBy(userRepo.getReferenceById(adminId));
-        q.setCreatedAt(LocalDateTime.now());
-
-        // Gán các quan hệ
-        if (dto.getCourseId() != null) {
-            Course course = courseRepo.findById(dto.getCourseId())
-                    .orElseThrow(() -> new EntityNotFoundException("Course not found"));
-            q.setCourse(course);
-        }
-
+        // Set quan hệ
         Lesson lesson = lessonRepo.findById(dto.getLessonId())
-                .orElseThrow(() -> new EntityNotFoundException("Lesson not found: "));
-        q.setLesson(lesson);
+                .orElseThrow(() -> new EntityNotFoundException("Lesson not found: " + dto.getLessonId()));
+        question.setLesson(lesson);
 
         QuestionType questionType = typeRepo.findById(dto.getQuestionTypeId())
-                .orElseThrow(() -> new EntityNotFoundException("Question type not found: " ));
-        q.setQuestionType(questionType);
+                .orElseThrow(() -> new EntityNotFoundException("Question type not found: " + dto.getQuestionTypeId()));
+        question.setQuestionType(questionType);
 
-        // Lưu câu hỏi trước để có ID
-        Question saved = questionRepo.save(q);
+        // Xử lý options - SỬA QUAN TRỌNG
+        if (dto.getOptions() != null && !dto.getOptions().isEmpty()) {
+            List<QuestionOption> options = dto.getOptions().stream()
+                    .map(optDto -> {
+                        QuestionOption option = new QuestionOption();
+                        option.setQuestion(question); // Set quan hệ
+                        option.setOptionText(optDto.getOptionText());
+                        option.setCorrect(optDto.isCorrect());
+                        option.setPosition(optDto.getPosition());
+                        option.setImageUrl(optDto.getImageUrl());
+                        return option;
+                    })
+                    .collect(Collectors.toList());
+            question.setOptions(options); // Set danh sách options vào question
+        }
 
-//// ✅ Lưu options nếu có
-//        if (dto.getOptions() != null && !dto.getOptions().isEmpty()) {
-//            dto.getOptions().forEach(optDto -> {
-//                QuestionOption opt = optDto.toEntity(saved); // ✅ Đúng với thiết kế DTO
-//                optionRepo.save(opt);
-//            });
-//        }
-//
-//// ✅ Lưu answers nếu có
-//        if (dto.getAnswers() != null && !dto.getAnswers().isEmpty()) {
-//            dto.getAnswers().forEach(ansDto -> {
-//                QuestionAnswer ans = ansDto.toEntity(saved); // ✅ Đúng với thiết kế DTO
-//                answerRepo.save(ans);
-//            });
-//        }
+        // Xử lý answers
+        if (dto.getAnswers() != null && !dto.getAnswers().isEmpty()) {
+            List<QuestionAnswer> answers = dto.getAnswers().stream()
+                    .map(ansDto -> {
+                        QuestionAnswer answer = new QuestionAnswer();
+                        answer.setQuestion(question); // Set quan hệ
+                        answer.setAnswerText(ansDto.getAnswerText());
+                        answer.setCaseSensitive(ansDto.isCaseSensitive());
+                        answer.setPosition(ansDto.getPosition());
+                        return answer;
+                    })
+                    .collect(Collectors.toList());
+            question.setAnswers(answers); // Set danh sách answers vào question
+        }
 
+        // Chỉ cần save question 1 lần - cascade sẽ tự động save options/answers
+        Question savedQuestion = questionRepo.save(question);
 
-        return mapper.toResponseDto(saved);
+        return getById(savedQuestion.getId());
     }
-
-
-
 
     @Override
     public QuestionResponseDto update(Integer id, QuestionCreateDto dto, Integer adminId) {
         setSessionContext(adminId);
 
-        Question q = questionRepo.findById(id)
+        Question existingQuestion = questionRepo.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Question not found: " + id));
 
-        // Cập nhật trường đơn giản
-        q.setContent(dto.getQuestionText());
-        q.setLevel(dto.getDifficulty());
-        q.setScore(dto.getPoints());
-        q.setUpdatedAt(LocalDateTime.now());
-        q.setUpdatedBy(userRepo.getReferenceById(adminId));
+        // Chỉ update các trường có giá trị trong DTO
+        if (dto.getQuestionText() != null) {
+            existingQuestion.setQuestionText(dto.getQuestionText());
+        }
+        if (dto.getDifficulty() != null) {
+            existingQuestion.setDifficulty(dto.getDifficulty());
+        }
+        if (dto.getPoints() != null) {
+            existingQuestion.setPoints(dto.getPoints());
+        }
 
-        // Cập nhật quan hệ
+        existingQuestion.setUpdatedAt(LocalDateTime.now());
+        existingQuestion.setUpdatedBy(userRepo.getReferenceById(adminId));
+
+        // Chỉ update quan hệ nếu có giá trị
         if (dto.getCourseId() != null) {
             Course course = courseRepo.findById(dto.getCourseId())
                     .orElseThrow(() -> new EntityNotFoundException("Course not found: " + dto.getCourseId()));
-            q.setCourse(course);
-        } else {
-            q.setCourse(null);
+            existingQuestion.setCourse(course);
         }
 
-        Lesson lesson = lessonRepo.findById(dto.getLessonId())
-                .orElseThrow(() -> new EntityNotFoundException("Lesson not found: " + dto.getLessonId()));
-        q.setLesson(lesson);
+        if (dto.getLessonId() != null) { // ✅ CHỈ update lesson nếu có giá trị
+            Lesson lesson = lessonRepo.findById(dto.getLessonId())
+                    .orElseThrow(() -> new EntityNotFoundException("Lesson not found: " + dto.getLessonId()));
+            existingQuestion.setLesson(lesson);
+        }
 
-        QuestionType questionType = typeRepo.findById(dto.getQuestionTypeId())
-                .orElseThrow(() -> new EntityNotFoundException("Question type not found: " + dto.getQuestionTypeId()));
-        q.setQuestionType(questionType);
+        if (dto.getQuestionTypeId() != null) {
+            QuestionType questionType = typeRepo.findById(dto.getQuestionTypeId())
+                    .orElseThrow(() -> new EntityNotFoundException("Question type not found: " + dto.getQuestionTypeId()));
+            existingQuestion.setQuestionType(questionType);
+        }
 
-        // Cập nhật media nếu có
+        // 4. Cập nhật media (Giữ nguyên)
         if (dto.getMedia() != null) {
-            q.setMediaUrl(dto.getMedia().getMediaUrl());
-            q.setAudioUrl(dto.getMedia().getAudioUrl());
-            q.setVideoUrl(dto.getMedia().getVideoUrl());
+            existingQuestion.setMediaUrl(dto.getMedia().getMediaUrl());
+            existingQuestion.setAudioUrl(dto.getMedia().getAudioUrl());
+            existingQuestion.setVideoUrl(dto.getMedia().getVideoUrl());
         } else {
-            q.setMediaUrl(null);
-            q.setAudioUrl(null);
-            q.setVideoUrl(null);
+            existingQuestion.setMediaUrl(null);
+            existingQuestion.setAudioUrl(null);
+            existingQuestion.setVideoUrl(null);
         }
 
-        // Lưu lại Question đã cập nhật
-        Question updated = questionRepo.save(q);
+        // 5. Lưu lại Question đã cập nhật
+        Question updatedQuestion = questionRepo.save(existingQuestion);
 
-        // -----------------------------------
-        // 1. Xoá toàn bộ options & answers cũ
-        // -----------------------------------
+        // 6. XOÁ TOÀN BỘ OPTIONS & ANSWERS CŨ
         optionRepo.deleteByQuestion_Id(id);
         answerRepo.deleteByQuestion_Id(id);
 
-        // -----------------------------------
-        // 2. Lưu mới options & answers mới
-        // -----------------------------------
+        // 7. TẠO MỚI OPTIONS & ANSWERS TỪ DTO - SỬA TẠI ĐÂY: Không dùng toEntity()
         if (dto.getOptions() != null && !dto.getOptions().isEmpty()) {
-            dto.getOptions().forEach(optDto -> {
-                QuestionOption opt = optDto.toEntity(updated);
-                optionRepo.save(opt);
-            });
+            for (OptionCreateDto optDto : dto.getOptions()) {
+                QuestionOption option = new QuestionOption();
+                option.setQuestion(updatedQuestion);
+                option.setOptionText(optDto.getOptionText());
+                option.setCorrect(optDto.isCorrect());
+                option.setPosition(optDto.getPosition());
+                option.setImageUrl(optDto.getImageUrl());
+                optionRepo.save(option);
+            }
         }
 
         if (dto.getAnswers() != null && !dto.getAnswers().isEmpty()) {
-            dto.getAnswers().forEach(ansDto -> {
-                QuestionAnswer ans = ansDto.toEntity(updated);
-                answerRepo.save(ans);
-            });
+            for (AnswerCreateDto ansDto : dto.getAnswers()) {
+                QuestionAnswer answer = new QuestionAnswer();
+                answer.setQuestion(updatedQuestion);
+                answer.setAnswerText(ansDto.getAnswerText());
+                answer.setCaseSensitive(ansDto.isCaseSensitive());
+                answer.setPosition(ansDto.getPosition());
+                answerRepo.save(answer);
+            }
         }
 
-        return mapper.toResponseDto(updated);
+        // 8. Trả về response
+        return getById(id);
     }
 
 
