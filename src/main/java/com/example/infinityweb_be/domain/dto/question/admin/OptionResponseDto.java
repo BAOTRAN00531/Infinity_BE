@@ -1,5 +1,5 @@
-// AnswerResponseDto.java
-package com.example.infinityweb_be.domain.dto.question;
+// OptionResponseDto.java
+package com.example.infinityweb_be.domain.dto.question.admin;
 
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -9,9 +9,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @AllArgsConstructor
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class AnswerResponseDto {
+public class OptionResponseDto {
     Integer id;
-    String answerText;
-    boolean caseSensitive;
+    String optionText;
+    boolean correct;
     Integer position;
+    String imageUrl;
 }

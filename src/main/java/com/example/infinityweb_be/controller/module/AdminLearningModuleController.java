@@ -60,6 +60,12 @@ public class AdminLearningModuleController {
         return moduleService.updateDto(id, request, adminId);
     }
 
+    @GetMapping("/{id}")
+    public LearningModuleDto getModuleById(@PathVariable Integer id) {
+        return moduleService.getByIdDto(id);
+    }
+
+
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Integer id) {
         moduleService.delete(id);

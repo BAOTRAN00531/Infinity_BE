@@ -50,4 +50,13 @@ public interface UserProgressRepository extends JpaRepository<UserProgress, Long
     Long countCompletedLessonsInModule(@Param("userId") Integer userId, @Param("moduleId") Integer moduleId);
 
 
+    @Query("SELECT up.entityId FROM UserProgress up " +
+            "WHERE up.user.id = :userId " +
+            "AND up.entityType = 'lesson' " +
+            "AND up.progressPercentage = 100.0 " +
+            "AND up.entityId IN :lessonIds")
+    List<Integer> findCompletedLessonIds(@Param("userId") Integer userId,
+                                         @Param("lessonIds") List<Integer> lessonIds);
+
+
 }

@@ -1,4 +1,4 @@
-package com.example.infinityweb_be.domain.dto.question;
+package com.example.infinityweb_be.domain.dto.question.admin;
 
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonInclude;

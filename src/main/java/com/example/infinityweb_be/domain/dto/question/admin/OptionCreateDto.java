@@ -1,4 +1,4 @@
-package com.example.infinityweb_be.domain.dto.question;
+package com.example.infinityweb_be.domain.dto.question.admin;
 
 import com.example.infinityweb_be.domain.Question;
 import com.example.infinityweb_be.domain.QuestionOption;
