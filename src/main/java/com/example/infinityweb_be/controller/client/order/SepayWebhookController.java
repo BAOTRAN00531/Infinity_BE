@@ -135,6 +135,25 @@ public class SepayWebhookController {
     }
 
 
+    @PostMapping("/cancel")
+    public ResponseEntity<Map<String, Object>> cancelPayment(@RequestParam String orderCode) {
+        Order order = orderService.findByOrderCode(orderCode)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if (order.getStatus() == OrderStatus.PAID) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Đơn hàng đã thanh toán, không thể hủy"
+            ));
+        }
+
+        orderService.updateOrderStatus(orderCode, OrderStatus.CANCELLED.name());
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Hủy thanh toán thành công",
+                "status", OrderStatus.CANCELLED.name(),
+                "orderCode", orderCode
+        ));
+    }
 
 
 }
