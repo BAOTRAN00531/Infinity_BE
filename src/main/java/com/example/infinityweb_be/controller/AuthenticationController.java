@@ -1,5 +1,6 @@
 package com.example.infinityweb_be.controller;
 
+import com.example.infinityweb_be.domain.CustomExceptionResponse;
 import com.example.infinityweb_be.domain.User;
 import com.example.infinityweb_be.domain.VerificationToken;
 import com.example.infinityweb_be.domain.dto.ForgotPasswordDTO;
@@ -13,6 +14,7 @@ import com.example.infinityweb_be.security.JwtService;
 import com.example.infinityweb_be.service.UserDetailCustom;
 import com.example.infinityweb_be.service.UserService;
 import com.example.infinityweb_be.service.VerificationTokenService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -167,10 +169,11 @@ public class AuthenticationController {
                 .build();
     }
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterDTO registerDTO) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterDTO registerDTO,
+                                      HttpServletRequest request) {
         try {
             // 1. Tạo user mới
-            User newUser = userService.registerNewUser(registerDTO); // đã mã hóa password, set role, gửi email xác thực
+            User newUser = userService.registerNewUser(registerDTO);
 
             // 2. Tạo access token
             UserDetails userDetails = new UserDetailCustom(newUser);
@@ -204,11 +207,26 @@ public class AuthenticationController {
                     .body(response);
 
         } catch (RuntimeException ex) {
-            return ResponseEntity.badRequest().body(ex.getMessage());
+            CustomExceptionResponse<Object> error = new CustomExceptionResponse<>();
+            error.setStatusCode(HttpStatus.BAD_REQUEST);
+            error.setMessage(ex.getMessage());
+            error.setData(null);
+            error.setPath(request.getRequestURI());
+            error.setTimestamp(LocalDateTime.now());
+            return ResponseEntity.badRequest().body(error);
+
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Đăng ký thất bại");
+            CustomExceptionResponse<Object> error = new CustomExceptionResponse<>();
+            error.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
+            error.setMessage("Đăng ký thất bại");
+            error.setData(null);
+            error.setPath(request.getRequestURI());
+            error.setTimestamp(LocalDateTime.now());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
+
+
     // com.example.infinityweb_be.controller/AuthenticationController.java
     @GetMapping("/verify-email")
     public ResponseEntity<Map<String, Object>> verifyEmail(@RequestParam("token") String token) {
@@ -231,7 +249,7 @@ public class AuthenticationController {
             log.warn("Token already confirmed for user: {}", vt.getUser().getEmail());
             return ResponseEntity.ok(Map.of(
                     "message", "Token đã được xác thực trước đó",
-                    "redirectTo", "/verify-success"
+                    "redirectTo", "/login"
             ));
         }
 
@@ -267,7 +285,7 @@ public class AuthenticationController {
 
         return ResponseEntity.ok(Map.of(
                 "message", "Xác nhận thành công",
-                "redirectTo", "/verify-success"
+                "redirectTo", "/login"
         ));
     }
 
