@@ -23,6 +23,12 @@ CREATE TABLE dbo.Users
     created_at DATETIME            NOT NULL DEFAULT GETDATE(),
     updated_at DATETIME            NOT NULL DEFAULT GETDATE()
 )
+
+ALTER TABLE dbo.Users
+    ADD is_vip BIT NOT NULL DEFAULT 0,
+        vip_expiry_date DATETIME NULL;
+
+
 GO
 
 -- 2.2. Refresh Tokens
@@ -143,6 +149,9 @@ CREATE TABLE dbo.Enrollment
     FOREIGN KEY (course_id) REFERENCES dbo.Courses (id)
 )
 GO
+
+SELECT * FROM Enrollment
+
 
 -- 2.8. Question Types
 CREATE TABLE dbo.Question_Types
@@ -380,6 +389,11 @@ CREATE TABLE dbo.Order_Details
     service_desc NVARCHAR(500)  NULL,
     price        DECIMAL(18, 2) NOT NULL
 );
+
+ALTER TABLE dbo.Order_Details
+    ALTER COLUMN course_id INT NULL;
+
+
 GO
 
 -- Bước 5: Thêm lại các ràng buộc khóa ngoại (gộp chung)

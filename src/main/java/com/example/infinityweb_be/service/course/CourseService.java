@@ -178,36 +178,94 @@ public class CourseService {
     }
 
     public List<StudentCourseProgressDto> getStudentDashboardCourses(Integer userId) {
+        // Bước 1: Lấy thông tin người dùng để kiểm tra trạng thái VIP
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng."));
 
-        // Bước 1: Lấy danh sách DTO với tiến độ tổng thể từ truy vấn đã sửa.
-        List<StudentCourseProgressDto> courses = courseRepository.findStudentDashboardCourses(userId);
+        // Bước 2: Kiểm tra nếu người dùng là VIP và thời hạn chưa hết
+        if (Boolean.TRUE.equals(user.getIsVip()) && user.getVipExpiryDate() != null && user.getVipExpiryDate().isAfter(LocalDateTime.now())) {
+            // Nếu là VIP, lấy tất cả các khóa học
+            List<Course> allCourses = courseRepository.findAll();
 
-        // Bước 2: Vòng lặp qua danh sách để tính toán completedModules
-        return courses.stream().map(courseDto -> {
+            // Ánh xạ tất cả các khóa học sang DTO và tính toán tiến độ
+            return allCourses.stream().map(course -> {
+                return calculateProgress(course, userId);
+            }).collect(Collectors.toList());
 
-            // Lấy tất cả các module của khóa học
-            List<LearningModule> modules = learningModuleRepository.findByCourseId(courseDto.getCourseId());
-            long completedModulesCount = 0;
+        } else {
+            // Bước 3: Nếu không phải VIP, lấy các khóa học đã ghi danh
+            List<StudentCourseProgressDto> courses = courseRepository.findStudentDashboardCourses(userId);
 
-            for (LearningModule module : modules) {
-                // Đếm tổng số bài học trong module
-                Long totalLessonsInModule = lessonRepository.countByModule_Id(module.getId());
+            // Bước 4: Tính toán completedModules và trả về
+            return courses.stream().map(courseDto -> {
+                return calculateProgress(courseDto, userId);
+            }).collect(Collectors.toList());
+        }
+    }
 
-                if (totalLessonsInModule > 0) {
-                    // Đếm số bài học đã hoàn thành của user trong module
-                    Long completedLessonsInModule = userProgressRepository.countCompletedLessonsInModule(userId, module.getId());
+    /**
+     * Phương thức helper để tính toán số module đã hoàn thành và tiến độ tổng thể.
+     * @param courseObject DTO hoặc Entity của khóa học
+     * @param userId ID của người dùng
+     * @return DTO đã cập nhật
+     */
+    private StudentCourseProgressDto calculateProgress(Object courseObject, Integer userId) {
+        StudentCourseProgressDto courseDto;
+        Integer courseId;
+        String courseName = null;
+        String thumbnail = null;
 
-                    // Nếu số bài học đã hoàn thành bằng tổng số bài học, module đó đã xong
-                    if (completedLessonsInModule != null && completedLessonsInModule.equals(totalLessonsInModule)) {
-                        completedModulesCount++;
-                    }
+        if (courseObject instanceof Course) {
+            Course entity = (Course) courseObject;
+            courseId = entity.getId();
+            courseName = entity.getName();
+            thumbnail = entity.getThumbnail();
+
+            // Khởi tạo DTO cho trường hợp VIP
+            courseDto = new StudentCourseProgressDto(
+                    courseId,
+                    courseName,
+                    thumbnail,
+                    entity.getPrice(),
+                    0L, // Giá trị tạm thời
+                    0L, // Giá trị tạm thời
+                    0.0 // Giá trị tạm thời
+            );
+        } else {
+            courseDto = (StudentCourseProgressDto) courseObject;
+            courseId = courseDto.getCourseId();
+        }
+
+        // Lấy tất cả các module của khóa học
+        List<LearningModule> modules = learningModuleRepository.findByCourseId(courseId);
+        long totalModules = modules.size();
+        long completedModulesCount = 0;
+        long totalLessons = 0;
+        long completedLessons = 0;
+
+        for (LearningModule module : modules) {
+            Long totalLessonsInModule = lessonRepository.countByModule_Id(module.getId());
+            totalLessons += totalLessonsInModule;
+
+            if (totalLessonsInModule > 0) {
+                Long completedLessonsInModule = userProgressRepository.countCompletedLessonsInModule(userId, module.getId());
+                completedLessons += completedLessonsInModule;
+
+                if (completedLessonsInModule != null && completedLessonsInModule.equals(totalLessonsInModule)) {
+                    completedModulesCount++;
                 }
             }
+        }
 
-            // Cập nhật giá trị completedModules vào DTO
-            courseDto.setCompletedModules(completedModulesCount);
-            return courseDto;
-        }).collect(Collectors.toList());
+        // Cập nhật giá trị vào DTO
+        courseDto.setTotalModules(totalModules);
+        courseDto.setCompletedModules(completedModulesCount);
+
+        if (totalLessons > 0) {
+            courseDto.setProgressPercentage((double) completedLessons / totalLessons * 100.0);
+        }
+
+        return courseDto;
     }
 
 }

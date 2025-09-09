@@ -5,10 +5,7 @@ import com.example.infinityweb_be.domain.Order;
 import com.example.infinityweb_be.domain.OrderDetail;
 import com.example.infinityweb_be.domain.User;
 import com.example.infinityweb_be.domain.course.Course;
-import com.example.infinityweb_be.domain.dto.order.CreateOrderRequest;
-import com.example.infinityweb_be.domain.dto.order.OrderDetailDTO;
-import com.example.infinityweb_be.domain.dto.order.OrderResponse;
-import com.example.infinityweb_be.domain.dto.order.OrderStatus;
+import com.example.infinityweb_be.domain.dto.order.*;
 import com.example.infinityweb_be.repository.CourseRepository;
 import com.example.infinityweb_be.repository.UserRepository;
 
@@ -114,13 +111,23 @@ public OrderResponse createOrder(CreateOrderRequest req) {
     }
 
     //Mapping từ Entity → DTO
+// Mapping từ Entity → DTO
     private OrderResponse mapToResponse(Order order) {
         List<OrderDetailDTO> details = order.getOrderDetails().stream()
                 .map(d -> new OrderDetailDTO(d.getServiceName(), d.getServiceDesc(), d.getPrice()))
                 .collect(Collectors.toList());
 
-        // ✅ Get course name from the first OrderDetail
-        String courseName = order.getOrderDetails().get(0).getCourse().getName();
+        // ✅ Sửa lỗi ở đây
+        String courseName = null; // Khởi tạo với giá trị null
+
+        // Lấy OrderDetail đầu tiên nếu có
+        if (!order.getOrderDetails().isEmpty()) {
+            OrderDetail firstDetail = order.getOrderDetails().get(0);
+            // Kiểm tra nếu OrderDetail có liên kết với một khóa học (không phải null)
+            if (firstDetail.getCourse() != null) {
+                courseName = firstDetail.getCourse().getName();
+            }
+        }
 
         return new OrderResponse(
                 order.getOrderCode(),
@@ -128,7 +135,7 @@ public OrderResponse createOrder(CreateOrderRequest req) {
                 order.getTotalAmount(),
                 order.getPaymentMethod().name(),
                 order.getOrderDate(),
-                courseName, // ✅ Use the courseName variable
+                courseName, // ✅ Sử dụng biến courseName đã xử lý
                 details,
                 order.getUser().getUsername()
         );
@@ -194,22 +201,124 @@ public OrderResponse createOrder(CreateOrderRequest req) {
         orderRepository.save(order);
     }
 
-//Duyệt đơn hàng
-public void approveOrder(String orderCode) {
-    Order order = orderRepository.findByOrderCode(orderCode)
-            .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn"));
 
-    if (order.getStatus() != OrderStatus.PENDING) {
-        throw new IllegalStateException("Chỉ duyệt đơn ở trạng thái PENDING");
+    /**
+     * Tạo đơn hàng kích hoạt tài khoản VIP
+     * @param req Thông tin yêu cầu từ client (userId, paymentMethod, durationInMonths)
+     * @return OrderResponse thông tin đơn hàng đã tạo
+     */
+    @Transactional
+    public OrderResponse createVipOrder(CreateVipOrderRequest req) {
+        // 1. Tìm thông tin User
+        User user = userRepository.findById(req.getUserId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng."));
+
+        // 2. Xác định giá dịch vụ VIP dựa trên thời gian
+        BigDecimal price = getVipPrice(req.getDurationInMonths());
+
+        // 3. Xây dựng đối tượng Order
+        Order order = Order.builder()
+                .user(user)
+                .orderCode(generateOrderCode())
+                .orderDate(LocalDateTime.now())
+                // Thời gian hết hạn của đơn hàng VIP sẽ khác với khóa học.
+                // Có thể đặt là 1 tháng để chờ thanh toán
+                .expiryDate(LocalDateTime.now().plusMonths(1))
+                .status(OrderStatus.PENDING)
+                .paymentMethod(PaymentMethod.valueOf(req.getPaymentMethod().toUpperCase())) // FIX: Chuyển đổi String sang Enum
+                .totalAmount(price)
+                .build();
+
+        // 4. Lưu Order vào cơ sở dữ liệu
+        orderRepository.save(order);
+
+        // 5. Xây dựng và lưu OrderDetail cho dịch vụ VIP
+        OrderDetail detail = new OrderDetail();
+        detail.setOrder(order);
+        detail.setServiceName("Kích hoạt tài khoản VIP");
+        detail.setServiceDesc("Truy cập toàn bộ khóa học trong " + req.getDurationInMonths() + " tháng.");
+        detail.setPrice(price);
+        // VÌ ĐÂY LÀ ĐƠN HÀNG VIP, KHÔNG LIÊN QUAN ĐẾN KHÓA HỌC CỤ THỂ,
+        // NÊN KHÔNG CẦN SET COURSE VÀO ORDERDETAIL
+        // detail.setCourse(course); // BỎ DÒNG NÀY
+        orderDetailRepository.save(detail);
+
+        // 6. Cập nhật danh sách chi tiết đơn hàng (nếu cần)
+        order.getOrderDetails().add(detail);
+
+        // 7. Trả về đối tượng Response
+        return mapToResponse(order);
     }
 
-    order.setStatus(OrderStatus.PAID);
-    orderRepository.save(order);
+    /**
+     * Lấy giá tiền cho gói VIP
+     * @param months Số tháng đăng ký VIP
+     * @return BigDecimal giá tiền tương ứng
+     */
+    private BigDecimal getVipPrice(int months) {
+        // Đây là logic giá tiền giả định. Bạn cần thay thế bằng giá thực tế
+        switch (months) {
+            case 1:
+                return new BigDecimal("500000"); // 500k
+            case 3:
+                return new BigDecimal("1200000"); // 1tr2
+            case 6:
+                return new BigDecimal("2000000"); // 2tr
+            case 12:
+                return new BigDecimal("3500000"); // 3tr5
+            default:
+                throw new IllegalArgumentException("Thời hạn VIP không hợp lệ");
+        }
+    }
 
-    // ✅ Get the course from the first order detail
-    Course course = order.getOrderDetails().get(0).getCourse();
-    enrollmentService.createEnrollment(order.getUser(), course);
-}
+    /**
+     * Cập nhật logic duyệt đơn hàng để xử lý cả đơn hàng mua khóa học và đơn hàng VIP
+     */
+
+//Duyệt đơn hàng
+// src/main/java/com/example/infinityweb_be/service/order/OrderService.java
+    @Transactional
+    public void approveOrder(String orderCode) {
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn"));
+
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new IllegalStateException("Chỉ duyệt đơn ở trạng thái PENDING");
+        }
+
+        order.setStatus(OrderStatus.PAID);
+        orderRepository.save(order);
+
+        // Kiểm tra loại đơn hàng và thực hiện logic tương ứng
+        if ("Kích hoạt tài khoản VIP".equals(order.getOrderDetails().get(0).getServiceName())) {
+            // Logic cho đơn hàng VIP
+            User user = order.getUser();
+
+            // Cập nhật trạng thái VIP của user và thời gian hết hạn
+            user.setIsVip(true);
+            user.setVipExpiryDate(LocalDateTime.now().plusMonths(
+                    order.getOrderDetails().get(0).getServiceDesc().contains("12") ? 12 :
+                            order.getOrderDetails().get(0).getServiceDesc().contains("6") ? 6 :
+                                    order.getOrderDetails().get(0).getServiceDesc().contains("3") ? 3 : 1
+            ));
+            userRepository.save(user);
+
+            // ✅ Bắt đầu logic mới: Ghi danh người dùng vào tất cả các khóa học
+            List<Course> allCourses = courseRepository.findAll();
+
+            for (Course course : allCourses) {
+                // Kiểm tra xem người dùng đã được ghi danh vào khóa học này chưa
+                if (!enrollmentRepository.existsByUserIdAndCourseId(user.getId(), course.getId())) {
+                    enrollmentService.createEnrollment(user, course);
+                }
+            }
+
+        } else {
+            // Logic cũ cho đơn hàng mua khóa học
+            Course course = order.getOrderDetails().get(0).getCourse();
+            enrollmentService.createEnrollment(order.getUser(), course);
+        }
+    }
 
 
 
