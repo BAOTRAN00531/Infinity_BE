@@ -96,17 +96,13 @@ public class SepayWebhookController {
         log.info("📥 [SePay Webhook] Payload: {}", request);
         log.info("🔑 Authorization header: {}", authorizationHeader);
 
-        log.info("💬 Nội dung chuyển khoản: {}", request.getContent());
-        log.info("💬 Mô tả giao dịch: {}", request.getDescription());
-
-
         // 1. Xác thực API Key
         if (authorizationHeader == null || !authorizationHeader.equals("Apikey " + sepayApiKey)) {
             log.warn("[SePay] Unauthorized webhook - invalid API key.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
         }
 
-        // 2. Trích xuất mã đơn hàng
+        // 2. Trích xuất mã đơn hàng từ body của webhook
         String orderCode = request.getCode();
         if (orderCode == null || orderCode.isBlank()) {
             orderCode = extractOrderCode(request.getContent());
@@ -124,12 +120,18 @@ public class SepayWebhookController {
 
         // 4. Tránh xử lý lại đơn đã thanh toán
         if (order.getStatus() == OrderStatus.PAID) {
+            log.info("✅ [SePay] Order {} already paid. No action needed.", order.getOrderCode());
             return ResponseEntity.ok("Order already paid.");
         }
 
-        // ✅ 5. Mặc định: bất kỳ webhook đến đều là PAID
-        orderService.updateOrderStatus(order.getOrderCode(), OrderStatus.PAID.name());
-        log.info("[SePay] Order {} marked as PAID via webhook", order.getOrderCode());
+        // ✅ 5. GỌI PHƯƠNG THỨC APPROVEORDER để kích hoạt logic VIP
+        try {
+            orderService.approveOrder(order.getOrderCode());
+            log.info("🎉 [SePay] Order {} successfully approved via webhook.", order.getOrderCode());
+        } catch (Exception e) {
+            log.error("❌ [SePay] Error approving order {}: {}", order.getOrderCode(), e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing order");
+        }
 
         return ResponseEntity.ok("OK");
     }

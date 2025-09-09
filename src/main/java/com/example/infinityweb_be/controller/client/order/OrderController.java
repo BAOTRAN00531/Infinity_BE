@@ -3,6 +3,7 @@ package com.example.infinityweb_be.controller.client.order;
 import com.example.infinityweb_be.common.JwtUtil;
 import com.example.infinityweb_be.domain.Order;
 import com.example.infinityweb_be.domain.dto.order.CreateOrderRequest;
+import com.example.infinityweb_be.domain.dto.order.CreateVipOrderRequest;
 import com.example.infinityweb_be.domain.dto.order.OrderDetailDTO;
 import com.example.infinityweb_be.domain.dto.order.OrderResponse;
 import com.example.infinityweb_be.service.order.OrderService;
@@ -72,7 +73,12 @@ public ResponseEntity<?> getUserOrderHistory(@RequestParam(required = false) Str
         return ResponseEntity.ok("Đã hủy đơn hàng");
     }
 
-
+    @PreAuthorize("hasRole('STUDENT')")
+    @PostMapping("/activate-vip")
+    public ResponseEntity<?> createVipOrder(@Valid @RequestBody CreateVipOrderRequest request) {
+        OrderResponse order = orderService.createVipOrder(request);
+        return ResponseEntity.ok(order);
+    }
 
     private String extractUserIdFromToken(HttpServletRequest request) {
         String header = request.getHeader("Authorization");
