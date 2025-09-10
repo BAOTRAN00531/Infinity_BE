@@ -450,6 +450,84 @@ public class AuthenticationController {
         ));
     }
 
+    @GetMapping("/check-email-for-reset")
+    public ResponseEntity<Map<String, Object>> checkEmailForPasswordReset(@RequestParam("email") String email) {
+        boolean exists = userRepository.findByEmail(email).isPresent();
+        return ResponseEntity.ok(Map.of(
+                "exists", exists,
+                "message", exists ? "Email tồn tại trong hệ thống" : "Email không tồn tại trong hệ thống"
+        ));
+    }
+
+    @PostMapping("/validate-otp")
+    public ResponseEntity<Map<String, Object>> validateOtp(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String otp = request.get("otp");
+
+        if (email == null || otp == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "valid", false,
+                    "message", "Email và OTP không được để trống"
+            ));
+        }
+
+        // Kiểm tra email có tồn tại không
+        Optional<User> optionalUser = userRepository.findByEmail(email);
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "valid", false,
+                    "message", "Email không tồn tại trong hệ thống"
+            ));
+        }
+
+        User user = optionalUser.get();
+        Long userId = user.getId().longValue();
+
+        // Tìm OTP trong database
+        Optional<VerificationToken> optionalToken = verificationTokenRepository
+                .findByUserIdAndType(userId, "FORGOT_PASSWORD");
+
+        if (optionalToken.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "valid", false,
+                    "message", "Chưa có OTP nào được gửi cho email này"
+            ));
+        }
+
+        VerificationToken vt = optionalToken.get();
+
+        // Kiểm tra OTP có đúng không
+        if (!vt.getToken().equals(otp)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "valid", false,
+                    "message", "Mã OTP không đúng"
+            ));
+        }
+
+        // Kiểm tra OTP có hết hạn không
+        if (vt.getExpiresAt().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "valid", false,
+                    "message", "Mã OTP đã hết hạn"
+            ));
+        }
+
+        // Kiểm tra OTP đã được sử dụng chưa
+        if (vt.isConfirmed()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "valid", false,
+                    "message", "Mã OTP đã được sử dụng"
+            ));
+        }
+
+        // OTP hợp lệ
+        return ResponseEntity.ok(Map.of(
+                "valid", true,
+                "message", "Mã OTP hợp lệ",
+                "userId", user.getId()
+        ));
+    }
+
     private String generateOtp() {
         Random random = new Random();
         int otp = 100000 + random.nextInt(900000); // OTP 6 chữ số
