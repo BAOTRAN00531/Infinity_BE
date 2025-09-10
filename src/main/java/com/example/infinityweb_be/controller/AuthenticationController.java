@@ -432,6 +432,24 @@ public class AuthenticationController {
         return ResponseEntity.ok(Map.of("message", "Đặt lại mật khẩu thành công. Vui lòng đăng nhập!"));
     }
 
+    @GetMapping("/check-username")
+    public ResponseEntity<Map<String, Object>> checkUsernameExists(@RequestParam("username") String username) {
+        boolean exists = userRepository.findByUsername(username).isPresent();
+        return ResponseEntity.ok(Map.of(
+                "exists", exists,
+                "message", exists ? "Username đã tồn tại" : "Username có thể sử dụng"
+        ));
+    }
+
+    @GetMapping("/check-email")
+    public ResponseEntity<Map<String, Object>> checkEmailExists(@RequestParam("email") String email) {
+        boolean exists = userRepository.findByEmail(email).isPresent();
+        return ResponseEntity.ok(Map.of(
+                "exists", exists,
+                "message", exists ? "Email đã tồn tại" : "Email có thể sử dụng"
+        ));
+    }
+
     private String generateOtp() {
         Random random = new Random();
         int otp = 100000 + random.nextInt(900000); // OTP 6 chữ số
