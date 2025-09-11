@@ -45,6 +45,13 @@ public class User {
     @Column(name = "is_active", nullable = false)
     private boolean isActive = false;       // ⬅️  mặc định FALSE khi đăng ký
 
+    @Column(name = "is_vip")
+    private Boolean isVip = false;
+
+    @Column(name = "vip_expiry_date")
+    private LocalDateTime vipExpiryDate;
+
+
     public boolean isActive()   { return isActive; }
     public void setActive(boolean active) { this.isActive = active; }
 
@@ -58,4 +65,6 @@ public class User {
     public void preUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+
 }

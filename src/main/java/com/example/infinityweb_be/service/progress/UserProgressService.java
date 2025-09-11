@@ -36,6 +36,30 @@ public class UserProgressService {
         return ((double) completedLessons / totalLessons) * 100;
     }
 
+//    public void markLessonAsCompleted(Integer userId, Integer lessonId) {
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(() -> new RuntimeException("User not found"));
+//        Lesson lesson = lessonRepository.findById(lessonId)
+//                .orElseThrow(() -> new RuntimeException("Lesson not found"));
+//
+//        Optional<UserProgress> existingProgress = userProgressRepository.findByUserIdAndEntityIdAndEntityType(userId, lessonId, "lesson");
+//
+//        if (existingProgress.isPresent()) {
+//            UserProgress progress = existingProgress.get();
+//            progress.setProgressPercentage(BigDecimal.valueOf(100.00));
+//            progress.setLastUpdated(LocalDateTime.now());
+//            userProgressRepository.save(progress);
+//        } else {
+//            UserProgress newProgress = new UserProgress();
+//            newProgress.setUser(user);
+//            newProgress.setEntityType("lesson");
+//            newProgress.setEntityId(lessonId);
+//            newProgress.setProgressPercentage(BigDecimal.valueOf(100.00));
+//            newProgress.setLastUpdated(LocalDateTime.now());
+//            userProgressRepository.save(newProgress);
+//        }
+//    }
+
     public void markLessonAsCompleted(Integer userId, Integer lessonId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -58,6 +82,10 @@ public class UserProgressService {
             newProgress.setLastUpdated(LocalDateTime.now());
             userProgressRepository.save(newProgress);
         }
+
+        // ✅ Cập nhật trạng thái trên lesson entity (optional)
+        lesson.setIsCompleted(true);
+        lessonRepository.save(lesson);
     }
 
 }

@@ -2,8 +2,8 @@ package com.example.infinityweb_be.controller;
 
 import com.example.infinityweb_be.common.AuthHelper;
 import com.example.infinityweb_be.domain.dto.LessonDto;
-import com.example.infinityweb_be.domain.dto.question.QuestionCreateDto;
-import com.example.infinityweb_be.domain.dto.question.QuestionResponseDto;
+import com.example.infinityweb_be.domain.dto.question.admin.QuestionCreateDto;
+import com.example.infinityweb_be.domain.dto.question.admin.QuestionResponseDto;
 import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
 import com.example.infinityweb_be.service.lesson.LessonService;

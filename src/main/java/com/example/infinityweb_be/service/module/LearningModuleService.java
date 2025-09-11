@@ -41,7 +41,6 @@ public class LearningModuleService {
     private final OrderService orderService; // 👈 thêm dòng này
     private final LearningModuleMapper moduleMapper; // 👈 thêm nếu dùng mapper
 
-
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -131,6 +130,13 @@ public class LearningModuleService {
         return toDto(updated);
     }
 
+    // ✅ GET BY ID DTO - Thêm method mới
+    public LearningModuleDto getByIdDto(Integer id) {
+        LearningModule module = moduleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Module not found with id: " + id));
+        return toDto(module);
+    }
+
     // === GET & DELETE còn dùng entity nếu cần ===
     public List<LearningModule> getAll() {
         return moduleRepository.findAll();
@@ -171,9 +177,7 @@ public class LearningModuleService {
                 .collect(Collectors.toList());
     }
 
-
-//chjeck
-
+    //check
     public List<LearningModuleDto> getByCourseIdDto(Integer courseId) {
         return moduleRepository.findByCourseId(courseId)
                 .stream()
@@ -181,19 +185,16 @@ public class LearningModuleService {
                 .collect(Collectors.toList());
     }
 
-//====== STUDENT LESSON ======//
-public List<LearningModuleDto> getModulesByCourseForStudent(Integer courseId, Integer userId) {
-    boolean isEnrolled = enrollmentRepository.existsByUserIdAndCourseId(userId, courseId);
-    if (!isEnrolled) {
-        throw new AccessDeniedException("Bạn chưa mua khóa học này.");
+    //====== STUDENT LESSON ======//
+    public List<LearningModuleDto> getModulesByCourseForStudent(Integer courseId, Integer userId) {
+        boolean isEnrolled = enrollmentRepository.existsByUserIdAndCourseId(userId, courseId);
+        if (!isEnrolled) {
+            throw new AccessDeniedException("Bạn chưa mua khóa học này.");
+        }
+
+        return moduleRepository.findByCourseId(courseId)
+                .stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
-
-    return moduleRepository.findByCourseId(courseId)
-            .stream()
-            .map(this::toDto)
-            .collect(Collectors.toList());
 }
-
-}
-
-

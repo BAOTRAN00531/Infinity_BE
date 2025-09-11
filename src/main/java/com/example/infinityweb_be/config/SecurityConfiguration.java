@@ -73,7 +73,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/users/email/**").permitAll()
                         // Cho phép khách truy cập các API công khai của student
                         .requestMatchers("/api/student/dashboard/public", "/api/student/course/public/**").permitAll()
-
+                        .requestMatchers("/api/student/quiz/lesson/**").permitAll()
                         // Các endpoint yêu cầu xác thực
 
                         .requestMatchers("/api/student/**").hasRole("STUDENT")

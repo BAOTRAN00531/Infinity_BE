@@ -1,8 +1,8 @@
 package com.example.infinityweb_be.service.question;
 
 import com.example.infinityweb_be.domain.QuestionOption;
-import com.example.infinityweb_be.domain.dto.question.OptionCreateDto;
-import com.example.infinityweb_be.domain.dto.question.OptionResponseDto;
+import com.example.infinityweb_be.domain.dto.question.admin.OptionCreateDto;
+import com.example.infinityweb_be.domain.dto.question.admin.OptionResponseDto;
 import com.example.infinityweb_be.repository.question.QuestionOptionRepository;
 import com.example.infinityweb_be.repository.question.QuestionRepository;
 import jakarta.persistence.EntityManager;

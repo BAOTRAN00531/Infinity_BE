@@ -1,5 +1,5 @@
 // 6. QuestionCreateDto.java
-package com.example.infinityweb_be.domain.dto.question;
+package com.example.infinityweb_be.domain.dto.question.admin;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

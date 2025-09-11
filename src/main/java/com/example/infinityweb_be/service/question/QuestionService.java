@@ -1,6 +1,8 @@
 package com.example.infinityweb_be.service.question;
 
-import com.example.infinityweb_be.domain.dto.question.*;
+import com.example.infinityweb_be.domain.dto.question.admin.QuestionCreateDto;
+import com.example.infinityweb_be.domain.dto.question.admin.QuestionResponseDto;
+
 import java.util.List;
 
 public interface QuestionService {

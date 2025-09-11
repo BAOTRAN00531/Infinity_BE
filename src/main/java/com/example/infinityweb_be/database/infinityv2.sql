@@ -1,8 +1,8 @@
 ﻿--------------------------------------------------------------------------------
 -- 1. TẠO DATABASE VÀ CHUYỂN CONTEXT
 --------------------------------------------------------------------------------
--- CREATE DATABASE InfinityWeb
--- GO
+CREATE DATABASE InfinityWeb
+GO
 USE InfinityWeb
 GO
 
@@ -23,6 +23,12 @@ CREATE TABLE dbo.Users
     created_at DATETIME            NOT NULL DEFAULT GETDATE(),
     updated_at DATETIME            NOT NULL DEFAULT GETDATE()
 )
+
+ALTER TABLE dbo.Users
+    ADD is_vip BIT NOT NULL DEFAULT 0,
+        vip_expiry_date DATETIME NULL;
+
+
 GO
 
 -- 2.2. Refresh Tokens
@@ -123,6 +129,9 @@ CREATE TABLE dbo.Lessons
 )
 GO
 
+ALTER TABLE dbo.Lessons
+    ADD is_completed BIT NOT NULL DEFAULT 0;
+
 
 ALTER TABLE dbo.Lessons
     ADD video_url NVARCHAR(255) NULL;
@@ -140,6 +149,9 @@ CREATE TABLE dbo.Enrollment
     FOREIGN KEY (course_id) REFERENCES dbo.Courses (id)
 )
 GO
+
+SELECT * FROM Enrollment
+
 
 -- 2.8. Question Types
 CREATE TABLE dbo.Question_Types
@@ -206,9 +218,6 @@ CREATE TABLE dbo.Question_Answers
     FOREIGN KEY (question_id) REFERENCES dbo.Questions (id)
 )
 GO
-
-
-select * from User_Progress;
 
 -- 2.12. User Progress
 CREATE TABLE dbo.User_Progress
@@ -356,11 +365,6 @@ GO
 
 -- 2.22. Orders
 
-
-    DROP TABLE dbo.Orders;
-    DROP TABLE dbo.Order_Details;
-
-
 -- Bảng Orders (không có course_id)
 CREATE TABLE dbo.Orders
 (
@@ -385,6 +389,11 @@ CREATE TABLE dbo.Order_Details
     service_desc NVARCHAR(500)  NULL,
     price        DECIMAL(18, 2) NOT NULL
 );
+
+ALTER TABLE dbo.Order_Details
+    ALTER COLUMN course_id INT NULL;
+
+
 GO
 
 -- Bước 5: Thêm lại các ràng buộc khóa ngoại (gộp chung)
@@ -397,8 +406,6 @@ ALTER TABLE dbo.Order_Details
         CONSTRAINT FK_OrderDetails_Course FOREIGN KEY (course_id) REFERENCES dbo.Courses (id);
 GO
 
-
-Select * from dbo.Enrollment;
 
 --------------------------------------------------------------------------------
 -- 4. TRIGGERS
@@ -450,13 +457,13 @@ GO
 INSERT INTO dbo.Users
     (username, email, full_name, role, password, is_active)
 VALUES ('admin', 'adminemail@example.com', N'Tên nào cũng được', 'admin',
-        '$2a$12$gSBFLoRiPCU5vtJSVKx9qej0wqfhVvgsfpZRiB/yoMR94aBtzf4Bu', 1)
+        '$2a$12$kUg548eke5DJx1mj5GdByOn3KFIjqOvD8xGmwoPpI9owL3BnUV2JS', 1)
 GO
 
 INSERT INTO dbo.Users
     (username, email, full_name, role, password, is_active)
 VALUES ('admin1', 'admin1email1@example.com', N'Tên nào cũng được', 'admin',
-        '$2a$12$7qNKP7SVXS0.fddyBLqeKuyjU6IS/zv/DFY8nLnciMo/LAzZ9HqJi', 1)
+        '$2a$12$kUg548eke5DJx1mj5GdByOn3KFIjqOvD8xGmwoPpI9owL3BnUV2JS', 1)
 GO
 
 INSERT INTO dbo.Users
@@ -542,9 +549,9 @@ GO
 
 -- 4.11. Sample Order
 
-INSERT INTO dbo.Order_Details (order_id, service_name, service_desc, price)
-VALUES (1, N'Unlock full khóa học 1 năm', N'Truy cập khoá học trong 1 năm', 1000000)
-GO
+-- INSERT INTO dbo.Order_Details (order_id, course_id ,service_name, service_desc, price)
+-- VALUES (1, 1, N'Unlock full khóa học 1 năm', N'Truy cập khoá học trong 1 năm', 1000000)
+-- GO
 
 --------------------------------------------------------------------------------
 -- 5. CHỈ MỤC TỐI ƯU HIỆU SUẤT
@@ -565,3 +572,5 @@ CREATE INDEX IX_Lessons_ModuleId ON dbo.Lessons (module_id)
 GO
 CREATE INDEX IX_Lessons_Status ON dbo.Lessons (status)
 GO
+
+-- DROP DATABASE InfinityWeb

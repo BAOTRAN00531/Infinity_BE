@@ -50,13 +50,18 @@ public class UserService {
             throw new RuntimeException("Email đã được sử dụng");
         }
 
+        // Thêm kiểm tra username
+        if (userRepository.existsByUsername(dto.getUsername())) {
+            throw new RuntimeException("Username đã được sử dụng");
+        }
+
         User user = new User();
         user.setEmail(dto.getEmail());
         user.setUsername(dto.getUsername());
         user.setFullName(dto.getFullName());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
 
-        // Chỉ cho phép role "student" hoặc các role khác không phải "ADMIN" khi đăng ký
+        // Logic kiểm tra và gán role vẫn giữ nguyên
         String requestedRole = dto.getRole() != null && !dto.getRole().isEmpty() ? dto.getRole().toLowerCase() : "student";
         if ("admin".equalsIgnoreCase(requestedRole)) {
             throw new RuntimeException("Không thể đăng ký với vai trò ADMIN. Vui lòng liên hệ quản trị viên.");
@@ -65,7 +70,6 @@ public class UserService {
         user.setActive(false);
         User savedUser = userRepository.save(user);
 
-        // ✅ Gọi tokenService để tạo token và gửi mail
         sendVerificationEmail(savedUser);
 
         return savedUser;

@@ -1,6 +1,6 @@
 package com.example.infinityweb_be.domain.dto;
 
-import com.example.infinityweb_be.domain.Lesson; // Make sure to import Lesson
+import com.example.infinityweb_be.domain.Lesson;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,10 +15,11 @@ public class LessonDto {
     private String description;
     private String content;
     private String type;
-    private String videoUrl; // ✅ Thêm trường videoUrl
-    private Integer orderIndex;      // <-- thêm vào đây
+    private String videoUrl;
+    private Integer orderIndex;
     private String duration;
     private String status;
+    private Boolean isCompleted; // ✅ Thêm trường isCompleted
     private Integer moduleId;
     private String moduleName;
     private Integer createdBy;
@@ -35,13 +36,14 @@ public class LessonDto {
         return new LessonDto(
                 lesson.getId(),
                 lesson.getName(),
-                lesson.getVideoUrl(),
                 lesson.getDescription(),
                 lesson.getContent(),
                 lesson.getType(),
+                lesson.getVideoUrl(), // ✅ Sửa thứ tự parameter
                 lesson.getOrderIndex(),
                 lesson.getDuration(),
                 lesson.getStatus(),
+                lesson.getIsCompleted(), // ✅ Thêm isCompleted
                 lesson.getModule() != null ? lesson.getModule().getId() : null,
                 lesson.getModule() != null ? lesson.getModule().getName() : null,
                 lesson.getCreatedBy() != null ? lesson.getCreatedBy().getId() : null,

@@ -1,5 +1,6 @@
 package com.example.infinityweb_be.controller;
 
+import com.example.infinityweb_be.domain.CustomExceptionResponse;
 import com.example.infinityweb_be.domain.User;
 import com.example.infinityweb_be.domain.VerificationToken;
 import com.example.infinityweb_be.domain.dto.ForgotPasswordDTO;
@@ -13,6 +14,7 @@ import com.example.infinityweb_be.security.JwtService;
 import com.example.infinityweb_be.service.UserDetailCustom;
 import com.example.infinityweb_be.service.UserService;
 import com.example.infinityweb_be.service.VerificationTokenService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -167,10 +169,11 @@ public class AuthenticationController {
                 .build();
     }
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterDTO registerDTO) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterDTO registerDTO,
+                                      HttpServletRequest request) {
         try {
             // 1. Tạo user mới
-            User newUser = userService.registerNewUser(registerDTO); // đã mã hóa password, set role, gửi email xác thực
+            User newUser = userService.registerNewUser(registerDTO);
 
             // 2. Tạo access token
             UserDetails userDetails = new UserDetailCustom(newUser);
@@ -204,11 +207,26 @@ public class AuthenticationController {
                     .body(response);
 
         } catch (RuntimeException ex) {
-            return ResponseEntity.badRequest().body(ex.getMessage());
+            CustomExceptionResponse<Object> error = new CustomExceptionResponse<>();
+            error.setStatusCode(HttpStatus.BAD_REQUEST);
+            error.setMessage(ex.getMessage());
+            error.setData(null);
+            error.setPath(request.getRequestURI());
+            error.setTimestamp(LocalDateTime.now());
+            return ResponseEntity.badRequest().body(error);
+
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Đăng ký thất bại");
+            CustomExceptionResponse<Object> error = new CustomExceptionResponse<>();
+            error.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
+            error.setMessage("Đăng ký thất bại");
+            error.setData(null);
+            error.setPath(request.getRequestURI());
+            error.setTimestamp(LocalDateTime.now());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
+
+
     // com.example.infinityweb_be.controller/AuthenticationController.java
     @GetMapping("/verify-email")
     public ResponseEntity<Map<String, Object>> verifyEmail(@RequestParam("token") String token) {
@@ -231,7 +249,7 @@ public class AuthenticationController {
             log.warn("Token already confirmed for user: {}", vt.getUser().getEmail());
             return ResponseEntity.ok(Map.of(
                     "message", "Token đã được xác thực trước đó",
-                    "redirectTo", "/verify-success"
+                    "redirectTo", "/login"
             ));
         }
 
@@ -267,7 +285,7 @@ public class AuthenticationController {
 
         return ResponseEntity.ok(Map.of(
                 "message", "Xác nhận thành công",
-                "redirectTo", "/verify-success"
+                "redirectTo", "/login"
         ));
     }
 
@@ -412,6 +430,102 @@ public class AuthenticationController {
 
         verificationTokenRepository.delete(optionalToken.get());
         return ResponseEntity.ok(Map.of("message", "Đặt lại mật khẩu thành công. Vui lòng đăng nhập!"));
+    }
+
+    @GetMapping("/check-username")
+    public ResponseEntity<Map<String, Object>> checkUsernameExists(@RequestParam("username") String username) {
+        boolean exists = userRepository.findByUsername(username).isPresent();
+        return ResponseEntity.ok(Map.of(
+                "exists", exists,
+                "message", exists ? "Username đã tồn tại" : "Username có thể sử dụng"
+        ));
+    }
+
+    @GetMapping("/check-email")
+    public ResponseEntity<Map<String, Object>> checkEmailExists(@RequestParam("email") String email) {
+        boolean exists = userRepository.findByEmail(email).isPresent();
+        return ResponseEntity.ok(Map.of(
+                "exists", exists,
+                "message", exists ? "Email đã tồn tại" : "Email có thể sử dụng"
+        ));
+    }
+
+    @GetMapping("/check-email-for-reset")
+    public ResponseEntity<Map<String, Object>> checkEmailForPasswordReset(@RequestParam("email") String email) {
+        boolean exists = userRepository.findByEmail(email).isPresent();
+        return ResponseEntity.ok(Map.of(
+                "exists", exists,
+                "message", exists ? "Email tồn tại trong hệ thống" : "Email không tồn tại trong hệ thống"
+        ));
+    }
+
+    @PostMapping("/validate-otp")
+    public ResponseEntity<Map<String, Object>> validateOtp(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String otp = request.get("otp");
+
+        if (email == null || otp == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "valid", false,
+                    "message", "Email và OTP không được để trống"
+            ));
+        }
+
+        // Kiểm tra email có tồn tại không
+        Optional<User> optionalUser = userRepository.findByEmail(email);
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "valid", false,
+                    "message", "Email không tồn tại trong hệ thống"
+            ));
+        }
+
+        User user = optionalUser.get();
+        Long userId = user.getId().longValue();
+
+        // Tìm OTP trong database
+        Optional<VerificationToken> optionalToken = verificationTokenRepository
+                .findByUserIdAndType(userId, "FORGOT_PASSWORD");
+
+        if (optionalToken.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "valid", false,
+                    "message", "Chưa có OTP nào được gửi cho email này"
+            ));
+        }
+
+        VerificationToken vt = optionalToken.get();
+
+        // Kiểm tra OTP có đúng không
+        if (!vt.getToken().equals(otp)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "valid", false,
+                    "message", "Mã OTP không đúng"
+            ));
+        }
+
+        // Kiểm tra OTP có hết hạn không
+        if (vt.getExpiresAt().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "valid", false,
+                    "message", "Mã OTP đã hết hạn"
+            ));
+        }
+
+        // Kiểm tra OTP đã được sử dụng chưa
+        if (vt.isConfirmed()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "valid", false,
+                    "message", "Mã OTP đã được sử dụng"
+            ));
+        }
+
+        // OTP hợp lệ
+        return ResponseEntity.ok(Map.of(
+                "valid", true,
+                "message", "Mã OTP hợp lệ",
+                "userId", user.getId()
+        ));
     }
 
     private String generateOtp() {
