@@ -73,7 +73,7 @@ public class AuthenticationController {
     }
 
 
-    @PostMapping("/login")
+    @PostMapping("/auth/login")
     public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
         // 1. Xác thực
         Authentication authentication = authenticationManager.authenticate(
@@ -249,7 +249,7 @@ public class AuthenticationController {
             log.warn("Token already confirmed for user: {}", vt.getUser().getEmail());
             return ResponseEntity.ok(Map.of(
                     "message", "Token đã được xác thực trước đó",
-                    "redirectTo", "/login"
+                    "redirectTo", "/auth/login"
             ));
         }
 
@@ -285,7 +285,7 @@ public class AuthenticationController {
 
         return ResponseEntity.ok(Map.of(
                 "message", "Xác nhận thành công",
-                "redirectTo", "/login"
+                "redirectTo", "/auth/login"
         ));
     }
 

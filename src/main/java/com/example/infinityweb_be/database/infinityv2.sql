@@ -150,8 +150,6 @@ CREATE TABLE dbo.Enrollment
 )
 GO
 
-SELECT * FROM Enrollment
-
 
 -- 2.8. Question Types
 CREATE TABLE dbo.Question_Types
@@ -457,7 +455,7 @@ GO
 INSERT INTO dbo.Users
     (username, email, full_name, role, password, is_active)
 VALUES ('admin', 'adminemail@example.com', N'Tên nào cũng được', 'admin',
-        '$2a$12$kUg548eke5DJx1mj5GdByOn3KFIjqOvD8xGmwoPpI9owL3BnUV2JS', 1)
+        '$2a$12$InSkNTTMKpbjnGK6K2YgduCKv/up.ylLgEnJrOoXgWnh3SFUECUiG', 1)
 GO
 
 INSERT INTO dbo.Users
