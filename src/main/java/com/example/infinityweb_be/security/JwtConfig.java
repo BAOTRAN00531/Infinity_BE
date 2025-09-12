@@ -28,10 +28,6 @@ public class JwtConfig {
 
     @Bean
     public KeyPair keyPair() throws Exception {
-//        InputStream is = getClass().getClassLoader().getResourceAsStream("keys/private.pem"); // ✅ sửa đúng đường dẫn
-//        if (is == null) {
-//            throw new IllegalArgumentException("Không tìm thấy file private.pem trong thư mục resources/keys");
-//        }
 
         String pem = new String(Files.readAllBytes(Paths.get(privateKeyPath)))
                 .replace("-----BEGIN PRIVATE KEY-----", "")

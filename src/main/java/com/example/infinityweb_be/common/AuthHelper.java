@@ -22,9 +22,3 @@ public class AuthHelper {
                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
     }
 }
-
-
-
-//import com.example.infinityweb_be.common.AuthHelper;
-//private final AuthHelper authHelper;
-//int adminId = authHelper.getCurrentUserId(token);
