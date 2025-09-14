@@ -74,7 +74,7 @@ public class AuthenticationController {
     }
 
 
-    @PostMapping("/auth/login")
+    @PostMapping("/login")
     public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
         // 1. Xác thực
         Authentication authentication = authenticationManager.authenticate(
