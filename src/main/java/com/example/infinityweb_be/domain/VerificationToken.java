@@ -29,6 +29,9 @@
         @Column(nullable = false)
         private boolean confirmed = false;
 
+        @Column(name = "confirmed_at")
+        private LocalDateTime confirmedAt;
+
         /** EMAIL_CONFIRMATION, PASSWORD_RESET, ACCESS, REFRESH… */
         @Column(length = 50, nullable = false)
         private String type;

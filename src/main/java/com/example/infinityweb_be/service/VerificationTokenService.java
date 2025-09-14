@@ -66,4 +66,25 @@ public class VerificationTokenService {
         return tokenRepository.save(token);
     }
 
+    /**
+     * Xác nhận OTP cho quên mật khẩu
+     */
+    public void confirmOtp(User user, String otp) {
+        VerificationToken token = tokenRepository.findByUserAndTypeAndToken(user, "FORGOT_PASSWORD", otp)
+                .orElseThrow(() -> new RuntimeException("Mã OTP không đúng"));
+
+        if (token.isConfirmed()) {
+            throw new RuntimeException("Mã OTP đã được sử dụng");
+        }
+
+        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Mã OTP đã hết hạn");
+        }
+
+        // Đánh dấu OTP đã xác nhận
+        token.setConfirmed(true);
+        token.setConfirmedAt(LocalDateTime.now());
+        tokenRepository.save(token);
+    }
+
 }
