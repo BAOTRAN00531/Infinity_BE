@@ -3,6 +3,7 @@ package com.example.infinityweb_be.controller;
 import com.example.infinityweb_be.domain.CustomExceptionResponse;
 import com.example.infinityweb_be.domain.User;
 import com.example.infinityweb_be.domain.VerificationToken;
+import com.example.infinityweb_be.domain.dto.ConfirmOtpRequest;
 import com.example.infinityweb_be.domain.dto.ForgotPasswordDTO;
 import com.example.infinityweb_be.domain.dto.LoginDTO;
 import com.example.infinityweb_be.domain.dto.RegisterDTO;
@@ -420,15 +421,28 @@ public class AuthenticationController {
     public ResponseEntity<Map<String, Object>> resetPassword(@RequestBody ForgotPasswordDTO dto) {
         Optional<VerificationToken> optionalToken = verificationTokenRepository.findByTokenAndType(dto.getOtp(), "FORGOT_PASSWORD");
 
-        if (optionalToken.isEmpty() || !optionalToken.get().isConfirmed()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Mã OTP không hợp lệ hoặc chưa xác thực"));
+        if (optionalToken.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Mã OTP không hợp lệ"));
         }
 
-        User user = optionalToken.get().getUser();
+        VerificationToken token = optionalToken.get();
+        
+        // Kiểm tra OTP đã được xác nhận chưa
+        if (!token.isConfirmed()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Mã OTP chưa được xác thực. Vui lòng xác thực OTP trước"));
+        }
+
+        // Kiểm tra OTP đã xác nhận có còn hạn không (5 phút sau khi confirm)
+        if (token.getConfirmedAt() != null && 
+            token.getConfirmedAt().plusMinutes(5).isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Mã OTP đã hết hạn. Vui lòng gửi lại OTP"));
+        }
+
+        User user = token.getUser();
         user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
         userRepository.save(user);
 
-        verificationTokenRepository.delete(optionalToken.get());
+        verificationTokenRepository.delete(token);
         return ResponseEntity.ok(Map.of("message", "Đặt lại mật khẩu thành công. Vui lòng đăng nhập!"));
     }
 
@@ -526,6 +540,50 @@ public class AuthenticationController {
                 "message", "Mã OTP hợp lệ",
                 "userId", user.getId()
         ));
+    }
+
+    /**
+     * Xác nhận OTP trước khi đổi mật khẩu
+     * POST /auth/confirm-otp
+     */
+    @PostMapping("/confirm-otp")
+    public ResponseEntity<Map<String, Object>> confirmOtp(@Valid @RequestBody ConfirmOtpRequest request) {
+        try {
+            // Kiểm tra email có tồn tại không
+            User user = userService.findByEmailOrUsername(request.getEmail())
+                    .orElseThrow(() -> new RuntimeException("Email không tồn tại trong hệ thống"));
+
+            // Kiểm tra có OTP nào được gửi cho email này không
+            Optional<VerificationToken> existingToken = verificationTokenRepository
+                    .findByUserAndType(user, "FORGOT_PASSWORD");
+            
+            if (existingToken.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "success", false,
+                        "message", "Chưa có OTP nào được gửi cho email này"
+                ));
+            }
+
+            // Xác nhận OTP
+            verificationTokenService.confirmOtp(user, request.getOtp());
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "OTP đã được xác nhận thành công"
+            ));
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            log.error("Lỗi khi xác nhận OTP: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "success", false,
+                    "message", "Có lỗi hệ thống"
+            ));
+        }
     }
 
     private String generateOtp() {
