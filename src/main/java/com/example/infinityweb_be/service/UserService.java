@@ -120,7 +120,7 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    //GG FB
+    // GG FB
     public User findOrCreateOAuthUser(String email, String name, String avatarUrl) {
         return userRepository.findByEmail(email).map(user -> {
             // Nếu avatar cũ khác avatar mới → cập nhật
@@ -128,6 +128,13 @@ public class UserService {
                 user.setAvatar(avatarUrl);
                 userRepository.save(user);
             }
+
+            // 🔒 CHỈ THÊM: nếu dữ liệu cũ isVip đang null → set false và lưu
+            if (user.getIsVip() == null) {
+                user.setIsVip(Boolean.FALSE);
+                userRepository.save(user);
+            }
+
             return user;
         }).orElseGet(() -> {
             User user = User.builder()
@@ -139,17 +146,19 @@ public class UserService {
                     .isActive(true)
                     .password("google_oauth")
                     .build();
+
+            // 🔒 CHỈ THÊM: đảm bảo is_vip có giá trị khi INSERT
+            user.setIsVip(Boolean.FALSE);
+
             return userRepository.save(user);
         });
     }
 
-// xac thuc nguoi dung
-public Integer getUserIdFromPrincipal(Principal principal) {
-    return userRepository.findByEmail(principal.getName())
-            .orElseThrow(() -> new UsernameNotFoundException("User not found"))
-            .getId();
-}
-
-
+    // xac thuc nguoi dung
+    public Integer getUserIdFromPrincipal(Principal principal) {
+        return userRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"))
+                .getId();
+    }
 
 }
