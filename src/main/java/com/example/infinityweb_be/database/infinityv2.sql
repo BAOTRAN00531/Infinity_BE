@@ -428,6 +428,53 @@ CREATE TABLE dbo.writing_rubric (
 );
 END
 GO
+IF OBJECT_ID(N'dbo.lexicon_sense', N'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.lexicon_sense
+  (
+      id                INT IDENTITY(1,1) PRIMARY KEY,
+      lexicon_unit_id   INT           NOT NULL,        -- INT (khớp Lexicon_Units.id)
+      pos               NVARCHAR(64)  NULL,
+      ipa               NVARCHAR(128) NULL,
+      gloss_vi          NVARCHAR(512) NOT NULL,        -- nghĩa tiếng Việt
+      gloss_en          NVARCHAR(512) NULL,
+      examples_json     NVARCHAR(MAX) NULL,
+      collocations_json NVARCHAR(MAX) NULL,
+      audio_url         NVARCHAR(1024) NULL,
+      confidence        DECIMAL(4,3)  NULL,            -- 0..1
+      status            NVARCHAR(32)  NOT NULL DEFAULT 'proposed',
+      created_at        DATETIME2(0)  NOT NULL DEFAULT SYSUTCDATETIME(),
+
+      CONSTRAINT fk_lexicon_sense_unit
+        FOREIGN KEY (lexicon_unit_id) REFERENCES dbo.Lexicon_Units (id)
+  );
+END
+GO
+IF OBJECT_ID(N'dbo.phrase_token_map', N'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.phrase_token_map
+  (
+      id              INT IDENTITY(1,1) PRIMARY KEY,
+      phrase_id       INT           NOT NULL,           -- INT (khớp Phrases.id)
+      token_start     INT           NOT NULL,
+      token_end       INT           NOT NULL,
+      lexicon_unit_id INT           NULL,               -- INT (khớp Lexicon_Units.id)
+      sense_id        INT           NULL,               -- INT (khớp lexicon_sense.id)
+      gloss_vi        NVARCHAR(512) NULL,
+      ipa             NVARCHAR(128) NULL,
+      audio_url       NVARCHAR(1024) NULL,
+      created_at      DATETIME2(0)  NOT NULL DEFAULT SYSUTCDATETIME(),
+
+      CONSTRAINT fk_ptm_phrase
+        FOREIGN KEY (phrase_id) REFERENCES dbo.Phrases (id),
+      CONSTRAINT fk_ptm_unit
+        FOREIGN KEY (lexicon_unit_id) REFERENCES dbo.Lexicon_Units (id),
+      CONSTRAINT fk_ptm_sense
+        FOREIGN KEY (sense_id) REFERENCES dbo.lexicon_sense (id)
+  );
+END
+GO
+
 -- Bước 5: Thêm lại các ràng buộc khóa ngoại (gộp chung)
 ALTER TABLE dbo.Orders
     ADD CONSTRAINT FK_Orders_User FOREIGN KEY (user_id) REFERENCES dbo.Users (id);
