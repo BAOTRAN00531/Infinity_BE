@@ -41,10 +41,14 @@ public class SecurityConfiguration {
             "https://www.infinitycat.site"
     );
 
+    // ✅ thêm đầy đủ endpoint public cho AI suggest + dictionary + TTS
     private static final List<String> PUBLIC_ENDPOINTS = List.of(
             "/", "/auth/**", "/oauth2/**", "/uploads/**",
             "/api/lexicon/test", "/api/lexicon/test-data", "/api/lexicon/phrases",
-            "/api/lexicon/units", "/api/tts/voices/**",
+            "/api/lexicon/units",
+            "/api/ai/lexicon/suggest",
+            "/api/tts/**",
+            "/api/dictionary/**",
             "/api/momo/**", "/api/vnpay/**", "/api/sepay/**",
             "/client/api/course/**",
             "/api/users/email/**",
@@ -60,19 +64,15 @@ public class SecurityConfiguration {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        configureHttpSecurity(http);
-        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
-        log.info("✅ Security filter chain configured.");
-        return http.build();
-    }
-
-    private void configureHttpSecurity(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable())
+        http
+                .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
+                        // ✅ cho phép preflight
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(PUBLIC_ENDPOINTS.toArray(new String[0])).permitAll()
                         .requestMatchers("/api/student/**").hasRole("STUDENT")
+                        // Chỉ yêu cầu ADMIN cho các endpoint quản trị, KHÔNG áp cho AI/Dictionary/TTS
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/client/api/user/progress/**").authenticated()
                         .requestMatchers("/api/**").authenticated()
@@ -94,12 +94,14 @@ public class SecurityConfiguration {
                 .formLogin(form -> form.disable())
                 .logout(logout -> logout
                         .logoutUrl("/logout")
-                        .logoutSuccessHandler((request, response, authentication) -> {
-                            response.setStatus(HttpServletResponse.SC_OK);
-                        })
+                        .logoutSuccessHandler((req, res, auth) -> res.setStatus(HttpServletResponse.SC_OK))
                         .permitAll()
                 );
+
+        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        return http.build();
     }
+
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -120,16 +122,12 @@ public class SecurityConfiguration {
         JwtGrantedAuthoritiesConverter converter = new JwtGrantedAuthoritiesConverter();
         converter.setAuthorityPrefix("");
         converter.setAuthoritiesClaimName("role");
-
         JwtAuthenticationConverter jwtConverter = new JwtAuthenticationConverter();
         jwtConverter.setJwtGrantedAuthoritiesConverter(converter);
         return jwtConverter;
     }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+    @Bean public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {

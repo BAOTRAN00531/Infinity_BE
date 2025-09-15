@@ -31,6 +31,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String path = request.getServletPath();
+        
+        // Debug log
+        System.out.println("🔍 JwtAuthFilter - Path: " + path + ", Method: " + request.getMethod());
+        
         // Skip JWT validation for refresh and login
         if (path.equals("/auth/refresh-token") || path.equals("/auth/login")) {
             // Create a wrapper to remove the Authorization header

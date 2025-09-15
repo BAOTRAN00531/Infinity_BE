@@ -43,6 +43,27 @@
             <artifactId>commons-codec</artifactId>
             <version>1.15</version>
         </dependency>
+        <!-- Cache starter -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <!-- Caffeine cache impl -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <!-- Nếu dự án dùng spring-boot-starter-parent thì có thể bỏ version.
+                 Nếu KHÔNG dùng parent của Spring Boot, thêm version như bên dưới -->
+            <version>3.1.8</version>
+        </dependency>
+
+        <!-- Dùng SHA1 key cho @Cacheable (nếu bạn dùng DigestUtils) -->
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.15</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jdbc</artifactId>
@@ -170,6 +191,7 @@
             <artifactId>jjwt</artifactId>
             <version>0.9.1</version>
         </dependency>
+
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-texttospeech</artifactId>
