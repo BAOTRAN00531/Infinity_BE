@@ -6,6 +6,7 @@ import com.example.infinityweb_be.domain.dto.order.CreateOrderRequest;
 import com.example.infinityweb_be.domain.dto.order.CreateVipOrderRequest;
 import com.example.infinityweb_be.domain.dto.order.OrderDetailDTO;
 import com.example.infinityweb_be.domain.dto.order.OrderResponse;
+import com.example.infinityweb_be.service.UserService;
 import com.example.infinityweb_be.service.order.OrderService;
 import com.example.infinityweb_be.service.orderdetail.OrderDetailService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import java.security.Principal; // Import lớp này
 
 import java.util.List;
 
@@ -24,11 +26,16 @@ public class OrderController {
 
     private final OrderService orderService;
     private final OrderDetailService orderDetailService;
+    private final UserService userService;
 
     @PreAuthorize("hasRole('STUDENT')")
     @PostMapping("/create")
-    public ResponseEntity<?> createOrder(@Valid @RequestBody CreateOrderRequest request) {
-        OrderResponse order = orderService.createOrder(request);
+    public ResponseEntity<?> createOrder(@Valid @RequestBody CreateOrderRequest request, Principal principal) {
+        // ✅ Lấy userId từ Principal, không phải từ request
+        Integer userId = userService.getUserIdFromPrincipal(principal);
+
+        // Truyền userId đã lấy được xuống service
+        OrderResponse order = orderService.createOrder(request, userId);
         return ResponseEntity.ok(order);
     }
 
@@ -75,8 +82,12 @@ public ResponseEntity<?> getUserOrderHistory(@RequestParam(required = false) Str
 
     @PreAuthorize("hasRole('STUDENT')")
     @PostMapping("/activate-vip")
-    public ResponseEntity<?> createVipOrder(@Valid @RequestBody CreateVipOrderRequest request) {
-        OrderResponse order = orderService.createVipOrder(request);
+    public ResponseEntity<?> createVipOrder(@Valid @RequestBody CreateVipOrderRequest request, Principal principal) {
+        // ✅ LẤY USER ID TỪ PRINCIPAL THAY VÌ TỪ REQUEST BODY
+        Integer userId = userService.getUserIdFromPrincipal(principal);
+
+        // Gọi hàm service với userId đã lấy được
+        OrderResponse order = orderService.createVipOrder(request, userId);
         return ResponseEntity.ok(order);
     }
 
