@@ -14,9 +14,7 @@ import com.example.infinityweb_be.repository.order.OrderDetailRepository;
 import com.example.infinityweb_be.repository.order.OrderRepository;
 
 import com.example.infinityweb_be.service.Enrollment.EnrollmentService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +23,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,18 +37,20 @@ public class OrderService {
     private final OrderDetailRepository orderDetailRepository; // ✅ Cần thêm dòng này
 
 //Tạo đơn hàng mới
-@Transactional // ✅ Thêm @Transactional để đảm bảo tất cả hoạt động được thực hiện trong một giao dịch
-public OrderResponse createOrder(CreateOrderRequest req) {
-    Course course = courseRepository.findById(req.getCourseId())
-            .orElseThrow(() -> new RuntimeException("Course not found"));
+@Transactional
+public OrderResponse createOrder(CreateOrderRequest req, Integer userId) {
+    // ✅ Lấy user từ userId đã được xác thực
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng."));
 
-    User user = userRepository.findById(req.getUserId())
-            .orElseThrow(() -> new RuntimeException("User not found"));
+    Course course = courseRepository.findById(req.getCourseId())
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học."));
 
     Order order = Order.builder()
             .user(user)
             .orderCode(generateOrderCode())
             .orderDate(LocalDateTime.now())
+            // Giả định là gói 12 tháng từ logic frontend
             .expiryDate(LocalDateTime.now().plusMonths(12))
             .status(OrderStatus.PENDING)
             .paymentMethod(req.getPaymentMethod())
@@ -70,7 +69,7 @@ public OrderResponse createOrder(CreateOrderRequest req) {
     detail.setPrice(course.getPrice());
 
     // Lưu OrderDetail
-    orderDetailRepository.save(detail); // ✅ Cần inject và sử dụng OrderDetailRepository
+    orderDetailRepository.save(detail);
 
     // Cập nhật lại danh sách OrderDetails trong đối tượng Order
     order.getOrderDetails().add(detail);
@@ -208,9 +207,10 @@ public OrderResponse createOrder(CreateOrderRequest req) {
      * @return OrderResponse thông tin đơn hàng đã tạo
      */
     @Transactional
-    public OrderResponse createVipOrder(CreateVipOrderRequest req) {
+    public OrderResponse createVipOrder(CreateVipOrderRequest req, Integer userId) {
         // 1. Tìm thông tin User
-        User user = userRepository.findById(req.getUserId())
+        // ✅ BÂY GIỜ BẠN CÓ THỂ TÌM NGƯỜI DÙNG DỰA TRÊN USER ID CHUẨN
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng."));
 
         // 2. Xác định giá dịch vụ VIP dựa trên thời gian
@@ -221,11 +221,9 @@ public OrderResponse createOrder(CreateOrderRequest req) {
                 .user(user)
                 .orderCode(generateOrderCode())
                 .orderDate(LocalDateTime.now())
-                // Thời gian hết hạn của đơn hàng VIP sẽ khác với khóa học.
-                // Có thể đặt là 1 tháng để chờ thanh toán
-                .expiryDate(LocalDateTime.now().plusMonths(1))
+                .expiryDate(LocalDateTime.now().plusMonths(1)) // Có thể cần thay đổi logic này
                 .status(OrderStatus.PENDING)
-                .paymentMethod(PaymentMethod.valueOf(req.getPaymentMethod().toUpperCase())) // FIX: Chuyển đổi String sang Enum
+                .paymentMethod(PaymentMethod.valueOf(req.getPaymentMethod().toUpperCase()))
                 .totalAmount(price)
                 .build();
 
@@ -238,15 +236,10 @@ public OrderResponse createOrder(CreateOrderRequest req) {
         detail.setServiceName("Kích hoạt tài khoản VIP");
         detail.setServiceDesc("Truy cập toàn bộ khóa học trong " + req.getDurationInMonths() + " tháng.");
         detail.setPrice(price);
-        // VÌ ĐÂY LÀ ĐƠN HÀNG VIP, KHÔNG LIÊN QUAN ĐẾN KHÓA HỌC CỤ THỂ,
-        // NÊN KHÔNG CẦN SET COURSE VÀO ORDERDETAIL
-        // detail.setCourse(course); // BỎ DÒNG NÀY
         orderDetailRepository.save(detail);
 
-        // 6. Cập nhật danh sách chi tiết đơn hàng (nếu cần)
         order.getOrderDetails().add(detail);
 
-        // 7. Trả về đối tượng Response
         return mapToResponse(order);
     }
 

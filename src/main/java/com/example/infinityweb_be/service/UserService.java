@@ -3,6 +3,8 @@ package com.example.infinityweb_be.service;
 import com.example.infinityweb_be.domain.VerificationToken;
 import com.example.infinityweb_be.domain.User;
 import com.example.infinityweb_be.domain.dto.RegisterDTO;
+import com.example.infinityweb_be.domain.dto.user.PasswordUpdate;
+import com.example.infinityweb_be.domain.dto.user.UserProfileUpdate;
 import com.example.infinityweb_be.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -161,4 +163,30 @@ public class UserService {
                 .getId();
     }
 
+    // ✅ Thêm phương thức cập nhật hồ sơ
+    public void updateUserProfile(String currentEmail, UserProfileUpdate profileUpdate) {
+        User user = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        user.setFullName(profileUpdate.getFullName());
+        user.setEmail(profileUpdate.getEmail());
+        // Có thể thêm logic kiểm tra email đã tồn tại hay chưa
+        userRepository.save(user);
+    }
+
+    // ✅ Thêm phương thức đổi mật khẩu
+    public void updatePassword(String email, PasswordUpdate passwordUpdate) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        // Kiểm tra mật khẩu hiện tại
+        if (!passwordEncoder.matches(passwordUpdate.getCurrentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu hiện tại không chính xác.");
+        }
+
+        // Mã hóa và cập nhật mật khẩu mới
+        String encodedNewPassword = passwordEncoder.encode(passwordUpdate.getNewPassword());
+        user.setPassword(encodedNewPassword);
+        userRepository.save(user);
+    }
 }
