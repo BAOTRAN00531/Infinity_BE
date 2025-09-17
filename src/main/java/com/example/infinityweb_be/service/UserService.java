@@ -3,6 +3,8 @@ package com.example.infinityweb_be.service;
 import com.example.infinityweb_be.domain.VerificationToken;
 import com.example.infinityweb_be.domain.User;
 import com.example.infinityweb_be.domain.dto.RegisterDTO;
+import com.example.infinityweb_be.domain.dto.user.PasswordUpdate;
+import com.example.infinityweb_be.domain.dto.user.UserProfileUpdate;
 import com.example.infinityweb_be.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -120,7 +122,7 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    //GG FB
+    // GG FB
     public User findOrCreateOAuthUser(String email, String name, String avatarUrl) {
         return userRepository.findByEmail(email).map(user -> {
             // Nếu avatar cũ khác avatar mới → cập nhật
@@ -128,6 +130,13 @@ public class UserService {
                 user.setAvatar(avatarUrl);
                 userRepository.save(user);
             }
+
+            // 🔒 CHỈ THÊM: nếu dữ liệu cũ isVip đang null → set false và lưu
+            if (user.getIsVip() == null) {
+                user.setIsVip(Boolean.FALSE);
+                userRepository.save(user);
+            }
+
             return user;
         }).orElseGet(() -> {
             User user = User.builder()
@@ -139,17 +148,45 @@ public class UserService {
                     .isActive(true)
                     .password("google_oauth")
                     .build();
+
+            // 🔒 CHỈ THÊM: đảm bảo is_vip có giá trị khi INSERT
+            user.setIsVip(Boolean.FALSE);
+
             return userRepository.save(user);
         });
     }
 
-// xac thuc nguoi dung
-public Integer getUserIdFromPrincipal(Principal principal) {
-    return userRepository.findByEmail(principal.getName())
-            .orElseThrow(() -> new UsernameNotFoundException("User not found"))
-            .getId();
-}
+    // xac thuc nguoi dung
+    public Integer getUserIdFromPrincipal(Principal principal) {
+        return userRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"))
+                .getId();
+    }
 
+    // ✅ Thêm phương thức cập nhật hồ sơ
+    public void updateUserProfile(String currentEmail, UserProfileUpdate profileUpdate) {
+        User user = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
 
+        user.setFullName(profileUpdate.getFullName());
+        user.setEmail(profileUpdate.getEmail());
+        // Có thể thêm logic kiểm tra email đã tồn tại hay chưa
+        userRepository.save(user);
+    }
 
+    // ✅ Thêm phương thức đổi mật khẩu
+    public void updatePassword(String email, PasswordUpdate passwordUpdate) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        // Kiểm tra mật khẩu hiện tại
+        if (!passwordEncoder.matches(passwordUpdate.getCurrentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu hiện tại không chính xác.");
+        }
+
+        // Mã hóa và cập nhật mật khẩu mới
+        String encodedNewPassword = passwordEncoder.encode(passwordUpdate.getNewPassword());
+        user.setPassword(encodedNewPassword);
+        userRepository.save(user);
+    }
 }

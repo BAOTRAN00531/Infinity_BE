@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CreateOrderRequest {
-    @NotNull
-    private Integer userId;
+//    @NotNull
+//    private Integer userId;
 
     @NotNull
     private PaymentMethod paymentMethod;

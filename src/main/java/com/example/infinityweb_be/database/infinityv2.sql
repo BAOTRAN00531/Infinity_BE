@@ -190,7 +190,9 @@ ALTER TABLE dbo.Questions
     ADD difficulty VARCHAR(10) NOT NULL DEFAULT 'easy',
         points INT NOT NULL DEFAULT 0
 GO
-
+-- 2) Ràng buộc nghĩa (nếu chưa có)
+ALTER TABLE Questions
+ADD sense_id BIGINT;
 
 -- 2.10. Question Options
 CREATE TABLE dbo.Question_Options
@@ -309,7 +311,8 @@ CREATE TABLE dbo.Verification_token
         REFERENCES dbo.Users (id) ON DELETE CASCADE
 )
 GO
-
+ALTER TABLE dbo.Verification_token
+ADD confirmed_at DATETIME2 NULL;
 -- 2.19 Lexicon Units
 CREATE TABLE dbo.Lexicon_Units
 (
@@ -395,6 +398,84 @@ ALTER TABLE dbo.Order_Details
 
 GO
 
+-- Bảng Practice_schedule
+IF OBJECT_ID(N'dbo.practice_schedule', N'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.practice_schedule (
+    id BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    question_id BIGINT NOT NULL,
+    efactor DECIMAL(4,2) CONSTRAINT DF_practice_schedule_efactor DEFAULT (2.5),
+    interval_days INT CONSTRAINT DF_practice_schedule_interval DEFAULT (0),
+    -- Lưu ý: trong SQL Server, TIMESTAMP là ROWVERSION. Dùng DATETIME2 thay thế.
+    next_due DATETIME2(0) CONSTRAINT DF_practice_schedule_next_due DEFAULT (SYSUTCDATETIME()),
+    success_streak INT CONSTRAINT DF_practice_schedule_streak DEFAULT (0),
+    last_result BIT NULL,
+    last_updated DATETIME2(0) CONSTRAINT DF_practice_schedule_last_updated DEFAULT (SYSUTCDATETIME()),
+    CONSTRAINT UQ_practice_schedule_user_question UNIQUE (user_id, question_id)
+  );
+END
+GO
+--Bảng writing_rubic
+IF OBJECT_ID(N'dbo.writing_rubric', N'U') IS NULL
+BEGIN
+CREATE TABLE dbo.writing_rubric (
+                                    id BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                                    name NVARCHAR(100) NOT NULL,
+                                    lang NVARCHAR(10) NOT NULL,            -- "en", "vi", ...
+                                    type NVARCHAR(30) NOT NULL,            -- "composite" (mặc định)
+                                    config NVARCHAR(MAX) NOT NULL,         -- JSON cấu hình
+                                    created_at DATETIME2(0) CONSTRAINT DF_writing_rubric_created DEFAULT SYSUTCDATETIME()
+);
+END
+GO
+IF OBJECT_ID(N'dbo.lexicon_sense', N'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.lexicon_sense
+  (
+      id                INT IDENTITY(1,1) PRIMARY KEY,
+      lexicon_unit_id   INT           NOT NULL,        -- INT (khớp Lexicon_Units.id)
+      pos               NVARCHAR(64)  NULL,
+      ipa               NVARCHAR(128) NULL,
+      gloss_vi          NVARCHAR(512) NOT NULL,        -- nghĩa tiếng Việt
+      gloss_en          NVARCHAR(512) NULL,
+      examples_json     NVARCHAR(MAX) NULL,
+      collocations_json NVARCHAR(MAX) NULL,
+      audio_url         NVARCHAR(1024) NULL,
+      confidence        DECIMAL(4,3)  NULL,            -- 0..1
+      status            NVARCHAR(32)  NOT NULL DEFAULT 'proposed',
+      created_at        DATETIME2(0)  NOT NULL DEFAULT SYSUTCDATETIME(),
+
+      CONSTRAINT fk_lexicon_sense_unit
+        FOREIGN KEY (lexicon_unit_id) REFERENCES dbo.Lexicon_Units (id)
+  );
+END
+GO
+IF OBJECT_ID(N'dbo.phrase_token_map', N'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.phrase_token_map
+  (
+      id              INT IDENTITY(1,1) PRIMARY KEY,
+      phrase_id       INT           NOT NULL,           -- INT (khớp Phrases.id)
+      token_start     INT           NOT NULL,
+      token_end       INT           NOT NULL,
+      lexicon_unit_id INT           NULL,               -- INT (khớp Lexicon_Units.id)
+      sense_id        INT           NULL,               -- INT (khớp lexicon_sense.id)
+      gloss_vi        NVARCHAR(512) NULL,
+      ipa             NVARCHAR(128) NULL,
+      audio_url       NVARCHAR(1024) NULL,
+      created_at      DATETIME2(0)  NOT NULL DEFAULT SYSUTCDATETIME(),
+
+      CONSTRAINT fk_ptm_phrase
+        FOREIGN KEY (phrase_id) REFERENCES dbo.Phrases (id),
+      CONSTRAINT fk_ptm_unit
+        FOREIGN KEY (lexicon_unit_id) REFERENCES dbo.Lexicon_Units (id),
+      CONSTRAINT fk_ptm_sense
+        FOREIGN KEY (sense_id) REFERENCES dbo.lexicon_sense (id)
+  );
+END
+GO
+
 -- Bước 5: Thêm lại các ràng buộc khóa ngoại (gộp chung)
 ALTER TABLE dbo.Orders
     ADD CONSTRAINT FK_Orders_User FOREIGN KEY (user_id) REFERENCES dbo.Users (id);
@@ -456,7 +537,7 @@ GO
 INSERT INTO dbo.Users
     (username, email, full_name, role, password, is_active)
 VALUES ('admin', 'adminemail@example.com', N'Tên nào cũng được', 'admin',
-        '$2a$12$kUg548eke5DJx1mj5GdByOn3KFIjqOvD8xGmwoPpI9owL3BnUV2JS', 1)
+        '$2a$12$InSkNTTMKpbjnGK6K2YgduCKv/up.ylLgEnJrOoXgWnh3SFUECUiG', 1)
 GO
 
 INSERT INTO dbo.Users
@@ -545,7 +626,135 @@ INSERT INTO dbo.Question_Answers (question_id, answer_text)
 VALUES (1, N'Hà Nội'),
        (1, N'Ha Noi')
 GO
+USE InfinityWeb;
 
+------------------------------------------------------------
+-- R1: general_en_simple  (đã dùng cho “I have a dog”)
+------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM dbo.writing_rubric WHERE name=N'general_en_simple')
+BEGIN
+  INSERT dbo.writing_rubric(name, lang, type, config)
+  VALUES (N'general_en_simple', N'en', N'composite', N'{
+    "jwWeight": 0.4,
+    "tokenWeight": 0.6,
+    "semWeight": 0.0,
+    "passThreshold": 70,
+    "minLen": 3,
+    "mustContainAny": [],
+    "mustContainAll": [],
+    "forbid": [],
+    "regexMust": [],
+    "regexForbid": [
+      "\\\\bi\\\\s+has\\\\b",
+      "\\\\b(you|we|they)\\\\s+has\\\\b",
+      "\\\\b(he|she|it)\\\\s+have\\\\b(?!\\\\s+got\\\\b)"
+    ],
+    "penalties": [
+      {"pattern":"\\\\bi\\\\s+has\\\\b","value":20},
+      {"pattern":"\\\\b(you|we|they)\\\\s+has\\\\b","value":15},
+      {"pattern":"\\\\b(he|she|it)\\\\s+have\\\\b(?!\\\\s+got\\\\b)","value":12}
+    ],
+    "hardZeroRules": [
+      {"pattern":"\\\\b(i|you|we|they)\\\\s+has\\\\b","message":"Sai chia động từ: với I/you/we/they dùng “have”, không phải “has”."},
+      {"pattern":"\\\\b(he|she|it)\\\\s+have\\\\b(?!\\\\s+got\\\\b)","message":"Sai chia động từ: với he/she/it dùng “has”, không dùng “have”."}
+    ],
+    "altTargets": []
+  }');
+END;
+
+------------------------------------------------------------
+-- R2: en_to_be_basic  (is/are với chủ ngữ)
+-- 0 điểm nếu: I/you/we/they + is  hoặc  he/she/it + are
+------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM dbo.writing_rubric WHERE name=N'en_to_be_basic')
+BEGIN
+  INSERT dbo.writing_rubric(name, lang, type, config)
+  VALUES (N'en_to_be_basic', N'en', N'composite', N'{
+    "jwWeight": 0.4, "tokenWeight": 0.6, "semWeight": 0.0, "passThreshold": 70, "minLen": 2,
+    "regexForbid": [],
+    "penalties": [],
+    "hardZeroRules": [
+      {"pattern":"\\\\b(i|you|we|they)\\\\s+is\\\\b","message":"Sai chia “to be”: với I/you/we/they dùng “am/are”, không dùng “is”."},
+      {"pattern":"\\\\b(he|she|it)\\\\s+are\\\\b","message":"Sai chia “to be”: với he/she/it dùng “is”, không dùng “are”."}
+    ],
+    "altTargets": []
+  }');
+END;
+
+------------------------------------------------------------
+-- R3: en_do_does_present_simple (phủ định/câu hỏi hiện tại đơn)
+-- 0 điểm nếu: he/she/it + do|don't   hoặc   I/you/we/they + does|doesn't
+------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM dbo.writing_rubric WHERE name=N'en_do_does_present_simple')
+BEGIN
+  INSERT dbo.writing_rubric(name, lang, type, config)
+  VALUES (N'en_do_does_present_simple', N'en', N'composite', N'{
+    "jwWeight": 0.4, "tokenWeight": 0.6, "semWeight": 0.0, "passThreshold": 70, "minLen": 3,
+    "regexForbid": [],
+    "penalties": [
+      {"pattern":"\\b(he|she|it)\\s+do\\b","value":15},
+      {"pattern":"\\b(he|she|it)\\s+don''t\\b","value":15},
+      {"pattern":"\\b(i|you|we|they)\\s+does\\b","value":15},
+      {"pattern":"\\b(i|you|we|they)\\s+doesn''t\\b","value":15}
+    ],
+    "hardZeroRules": [
+      {"pattern":"\\b(he|she|it)\\s+do(n''t)?\\b","message":"Hiện tại đơn: với he/she/it dùng “does/doesn''t”."},
+      {"pattern":"\\b(i|you|we|they)\\s+does(n''t)?\\b","message":"Hiện tại đơn: với I/you/we/they dùng “do/don''t”."}
+    ],
+    "altTargets": []
+  }');
+END;
+
+
+------------------------------------------------------------
+-- R4: en_present_continuous  (am/is/are + V-ing)
+-- Yêu cầu có to be + động từ -ing ; phạt nặng nếu thiếu -ing
+------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM dbo.writing_rubric WHERE name=N'en_present_continuous')
+BEGIN
+  INSERT dbo.writing_rubric(name, lang, type, config)
+  VALUES (N'en_present_continuous', N'en', N'composite', N'{
+    "jwWeight": 0.3, "tokenWeight": 0.7, "semWeight": 0.0, "passThreshold": 70, "minLen": 3,
+    "regexMust": ["\\\\b(am|is|are)\\\\b", "\\\\b\\w+ing\\\\b"],
+    "regexForbid": ["\\\\b(always)\\\\b"],       // tránh lạm dụng always ở thì tiếp diễn
+    "penalties": [
+      {"pattern":"\\\\b(am|is|are)\\\\s+\\w+\\\\b(?!\\s*ing)","value":15} // to be + base không -ing
+    ],
+    "hardZeroRules": [],
+    "altTargets": []
+  }');
+END;
+
+------------------------------------------------------------
+-- R5: en_present_perfect_simple  (have/has + V3)
+-- Yêu cầu have/has + (ed|một số V3 phổ biến); cấm dùng "ago"
+------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM dbo.writing_rubric WHERE name=N'en_present_perfect_simple')
+BEGIN
+  INSERT dbo.writing_rubric(name, lang, type, config)
+  VALUES (N'en_present_perfect_simple', N'en', N'composite', N'{
+    "jwWeight": 0.3, "tokenWeight": 0.7, "semWeight": 0.0, "passThreshold": 70, "minLen": 3,
+    "regexMust": ["\\\\b(have|has)\\\\b"],
+    "regexForbid": ["\\\\bago\\\\b"],
+    "penalties": [
+      {"pattern":"\\\\b(have|has)\\\\b(?!.*\\\\b(\\\w+ed|gone|been|done|seen|made|had|taken|written|eaten|known|thought)\\\\b)","value":18}
+    ],
+    "hardZeroRules": [],
+    "altTargets": []
+  }');
+END;
+
+-- 2) Thêm cột liên kết rubric vào questions (nếu chưa có)
+IF COL_LENGTH('dbo.questions', 'writing_rubric_id') IS NULL
+ALTER TABLE dbo.questions ADD writing_rubric_id BIGINT NULL;
+GO
+
+-- 3) (Tuỳ) thêm nơi lưu đáp án mở + đáp án thay thế
+IF COL_LENGTH('dbo.questions', 'correct_text') IS NULL
+ALTER TABLE dbo.questions ADD correct_text NVARCHAR(4000) NULL;
+IF COL_LENGTH('dbo.questions', 'alt_answers_json') IS NULL
+ALTER TABLE dbo.questions ADD alt_answers_json NVARCHAR(MAX) NULL;
+GO
 -- 4.11. Sample Order
 
 -- INSERT INTO dbo.Order_Details (order_id, course_id ,service_name, service_desc, price)

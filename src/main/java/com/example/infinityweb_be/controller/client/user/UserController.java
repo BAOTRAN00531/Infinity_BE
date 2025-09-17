@@ -1,46 +1,64 @@
 package com.example.infinityweb_be.controller.client.user;
 
+// src/main/java/com/example/infinityweb_be.controller.client.user/UserController.java
+
 import com.example.infinityweb_be.domain.User;
 import com.example.infinityweb_be.domain.dto.user.UserDto;
-import com.example.infinityweb_be.repository.UserRepository;
+import com.example.infinityweb_be.domain.dto.user.UserProfileUpdate;
+import com.example.infinityweb_be.domain.dto.user.PasswordUpdate;
+import com.example.infinityweb_be.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Optional;
+import org.springframework.web.bind.annotation.*;
+import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
 
-    private final UserRepository userRepository;
+    private final UserService userService;
 
-    @GetMapping("/email/{email}")
-    public ResponseEntity<?> getUserByEmail(@PathVariable String email) {
-        Optional<User> userOptional = userRepository.findByEmail(email);
-
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
-            UserDto dto = new UserDto(
-                    user.getId(),
-                    user.getUsername(),
-                    user.getEmail(),
-                    user.getFullName(),
-                    user.getAvatar(),
-                    user.getRole()
-            );
-            return ResponseEntity.ok(dto);
+    @GetMapping("/me")
+    public ResponseEntity<UserDto> getLoggedInUser(Principal principal) {
+        String userEmail = principal.getName();
+        User user = userService.handleGetAccountByEmail(userEmail);
+        if (user != null) {
+            UserDto userDto = UserDto.builder()
+                    .id(user.getId())
+                    .username(user.getUsername())
+                    .email(user.getEmail())
+                    .fullName(user.getFullName())
+                    .avatar(user.getAvatar())
+                    .role(user.getRole())
+                    .isVip(user.getIsVip())
+                    .vipExpiryDate(user.getVipExpiryDate())
+                    .build();
+            return ResponseEntity.ok(userDto);
         } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            return ResponseEntity.notFound().build();
         }
     }
 
+    // ✅ Endpoint POST để cập nhật thông tin chung
+    @PostMapping("/me/profile")
+    public ResponseEntity<?> updateProfile(@RequestBody UserProfileUpdate profileUpdate, Principal principal) {
+        try {
+            userService.updateUserProfile(principal.getName(), profileUpdate);
+            return ResponseEntity.ok("Cập nhật hồ sơ thành công!");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 
-
-
+    // ✅ Endpoint POST để đổi mật khẩu
+    @PostMapping("/me/password")
+    public ResponseEntity<?> updatePassword(@RequestBody PasswordUpdate passwordUpdate, Principal principal) {
+        try {
+            userService.updatePassword(principal.getName(), passwordUpdate);
+            return ResponseEntity.ok("Đổi mật khẩu thành công!");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }
