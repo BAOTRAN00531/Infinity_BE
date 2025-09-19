@@ -23,16 +23,14 @@ public interface UserProgressRepository extends JpaRepository<UserProgress, Long
     long countCompletedLessons(@Param("userId") Integer userId,
                                @Param("lessonIds") List<Integer> lessonIds);
 
-    Optional<UserProgress> findByUserIdAndEntityIdAndEntityType(Integer userId, Integer entityId, String entityType);
-
     @Query("""
         SELECT COUNT(m)
         FROM LearningModule m
         WHERE m.course.id = :courseId AND (
             SELECT COUNT(l) FROM Lesson l WHERE l.module.id = m.id
         ) = (
-            SELECT COUNT(up) FROM UserProgress up 
-            WHERE up.user.id = :userId 
+            SELECT COUNT(up) FROM UserProgress up
+            WHERE up.user.id = :userId
             AND up.entityType = 'lesson'
             AND up.progressPercentage = 100.0
             AND up.entityId IN (SELECT l2.id FROM Lesson l2 WHERE l2.module.id = m.id)
@@ -57,6 +55,12 @@ public interface UserProgressRepository extends JpaRepository<UserProgress, Long
             "AND up.entityId IN :lessonIds")
     List<Integer> findCompletedLessonIds(@Param("userId") Integer userId,
                                          @Param("lessonIds") List<Integer> lessonIds);
+
+    Optional<UserProgress> findByUserIdAndEntityIdAndEntityType(Integer userId, Integer entityId, String entityType);
+
+    default Optional<UserProgress> findByUserIdAndLessonId(Integer userId, Integer lessonId) {
+        return findByUserIdAndEntityIdAndEntityType(userId, lessonId, "lesson");
+    }
 
 
 }
