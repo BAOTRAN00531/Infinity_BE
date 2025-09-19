@@ -24,6 +24,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -217,16 +218,17 @@ public class LessonService {
         LearningModule module = moduleRepository.findById(moduleId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy module"));
 
-        Integer courseId = module.getCourse().getId();
-
-        boolean isEnrolled = enrollmentRepository.existsByUserIdAndCourseId(userId, courseId);
-
-        if (!isEnrolled) {
-            throw new AccessDeniedException("Bạn chưa mua khóa học chứa module này.");
-        }
+//        Integer courseId = module.getCourse().getId();
+//
+//        boolean isEnrolled = enrollmentRepository.existsByUserIdAndCourseId(userId, courseId);
+//
+//        if (!isEnrolled) {
+//            throw new AccessDeniedException("Bạn chưa mua khóa học chứa module này.");
+//        }
 
         // Lấy tất cả lessons trong module
-        List<Lesson> lessons = lessonRepository.findByModule_Id(moduleId);
+        List<Lesson> lessons = lessonRepository.findByModule_Id(moduleId)
+                .stream().sorted(Comparator.comparing(Lesson::getOrderIndex)).toList();
         List<Integer> lessonIds = lessons.stream().map(Lesson::getId).toList();
         Map<Integer, UserQuestionProgressDto> map = userQuestionProgressRepository.getUserQuestionProgress(userId, lessonIds)
                 .stream().collect(Collectors.toMap(UserQuestionProgressDto::getLessonId, Function.identity()));
@@ -240,7 +242,7 @@ public class LessonService {
                             lesson.getId(),
                             lesson.getName(),
                             lesson.getDescription(),
-                            null,
+                            lesson.getIcon(),
                             progress,
                             null
                     );

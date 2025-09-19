@@ -2,7 +2,11 @@
 package com.example.infinityweb_be.domain;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -30,6 +34,8 @@ public class Lesson {
 
     @Column(nullable = false, length = 100)
     private String name;
+
+    private String icon;
 
     @Column(length = 255)
     private String description;
