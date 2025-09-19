@@ -5,7 +5,8 @@ import com.example.infinityweb_be.domain.LearningModule;
 import com.example.infinityweb_be.domain.Lesson;
 import com.example.infinityweb_be.domain.User;
 import com.example.infinityweb_be.domain.dto.LessonDto;
-import com.example.infinityweb_be.domain.dto.order.OrderStatus;
+import com.example.infinityweb_be.domain.dto.learn.LearnLessonDto;
+import com.example.infinityweb_be.domain.dto.question.student.UserQuestionProgressDto;
 import com.example.infinityweb_be.repository.LearningModuleRepository;
 import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
@@ -13,20 +14,21 @@ import com.example.infinityweb_be.repository.enrollment.EnrollmentRepository;
 import com.example.infinityweb_be.repository.order.OrderRepository;
 import com.example.infinityweb_be.repository.progress.UserProgressRepository;
 import com.example.infinityweb_be.repository.question.QuestionRepository;
-import com.example.infinityweb_be.service.order.OrderService;
-//import com.example.infinityweb_be.util.YoutubeUrlConverter;
+import com.example.infinityweb_be.repository.question.UserQuestionProgressRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,10 +39,11 @@ public class LessonService {
     private final LearningModuleRepository moduleRepository;
     private final UserRepository userRepository;
     private final QuestionRepository questionRepository;
-    private  final OrderRepository orderRepository;
+    private final OrderRepository orderRepository;
     private final EnrollmentRepository enrollmentRepository;
-//    private final YoutubeUrlConverter youtubeUrlConverter; // ✅ Thêm dòng này
-private final UserProgressRepository userProgressRepository; // ✅ THÊM repository này
+    //    private final YoutubeUrlConverter youtubeUrlConverter; // ✅ Thêm dòng này
+    private final UserProgressRepository userProgressRepository; // ✅ THÊM repository này
+    private final UserQuestionProgressRepository userQuestionProgressRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -211,6 +214,42 @@ private final UserProgressRepository userProgressRepository; // ✅ THÊM reposi
                 .collect(Collectors.toList());
     }
 
+    public List<LearnLessonDto> getLesson(Integer moduleId, Integer userId) {
+        LearningModule module = moduleRepository.findById(moduleId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy module"));
+
+//        Integer courseId = module.getCourse().getId();
+//
+//        boolean isEnrolled = enrollmentRepository.existsByUserIdAndCourseId(userId, courseId);
+//
+//        if (!isEnrolled) {
+//            throw new AccessDeniedException("Bạn chưa mua khóa học chứa module này.");
+//        }
+
+        // Lấy tất cả lessons trong module
+        List<Lesson> lessons = lessonRepository.findByModule_Id(moduleId)
+                .stream().sorted(Comparator.comparing(Lesson::getOrderIndex)).toList();
+        List<Integer> lessonIds = lessons.stream().map(Lesson::getId).toList();
+        Map<Integer, UserQuestionProgressDto> map = userQuestionProgressRepository.getUserQuestionProgress(userId, lessonIds)
+                .stream().collect(Collectors.toMap(UserQuestionProgressDto::getLessonId, Function.identity()));
+
+        return lessons.stream()
+                .map(lesson -> {
+                    Float progress = Optional.ofNullable(map.get(lesson.getId()))
+                            .map(UserQuestionProgressDto::getProgress)
+                            .orElse(0f);
+                    return new LearnLessonDto(
+                            lesson.getId(),
+                            lesson.getName(),
+                            lesson.getDescription(),
+                            lesson.getIcon(),
+                            progress,
+                            null
+                    );
+                })
+                .collect(Collectors.toList());
+
+    }
 
 
 }

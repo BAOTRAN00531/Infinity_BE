@@ -36,7 +36,6 @@ public interface LessonRepository extends JpaRepository<Lesson, Integer> {
 //    void incrementOrderIndexFrom(@Param("moduleId") Integer moduleId, @Param("orderIndex") Integer orderIndex);
 
 
-
     @Query("SELECT COUNT(l) FROM Lesson l JOIN l.module m WHERE m.course.id = :courseId")
     long countByCourseId(int courseId);
 
