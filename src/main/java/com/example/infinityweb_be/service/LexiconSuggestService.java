@@ -21,7 +21,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class LexiconSuggestService {
   private final LlmClient llm;
   private final ObjectMapper om = new ObjectMapper();
-
+  private final LexiconUnitRepository unitRepo;
   public LexiconDTOs.SuggestResponse suggest(LexiconDTOs.SuggestRequest req) throws Exception {
     String prompt = buildPrompt(req.getPrefix(), req.getLang(), req.getLevel());
 
@@ -92,5 +92,25 @@ public class LexiconSuggestService {
 
       Prefix: "%s", Language: "%s", Level: "%s".
       """.formatted(prefix, l, lv);
+  }
+  public List<LexiconDTOs.GlossItem> quickGloss(String text, String lang) {
+    if (text == null || text.isBlank()) return List.of();
+
+    // ví dụ: lang = "en" hoặc "US" -> tùy bạn map code
+    String code = lang.trim();
+
+    List<LexiconUnit> units =
+            unitRepo.findTop10ByTextStartsWithIgnoreCaseAndLanguage_Code(text.trim(), code);
+
+    return units.stream()
+            .map(u -> new LexiconDTOs.GlossItem(
+                    u.getText(),          // word
+                    u.getPos(),           // pos (String)
+                    u.getIpa(),           // ipa
+                    u.getMeaningEng(),    // hoặc meaningVi tuỳ UI
+                    u.getAudioUrl(),      // audio url
+                    0.95                  // confidence: tạm set cao cho data DB
+            ))
+            .collect(Collectors.toList());
   }
 }

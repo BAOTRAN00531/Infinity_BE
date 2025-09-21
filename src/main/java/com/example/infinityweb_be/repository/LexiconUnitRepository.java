@@ -10,6 +10,11 @@ import java.util.List;
 import java.util.Optional;
 
 public interface LexiconUnitRepository extends JpaRepository<LexiconUnit, Integer> {
+    // Lấy tối đa 10 từ bắt đầu bằng 'text' (case-insensitive) theo language.code
+    List<LexiconUnit> findTop10ByTextStartsWithIgnoreCaseAndLanguage_Code(String text, String code);
+
+    // Tuỳ dùng: lấy top 3 exact (nếu cần)
+    List<LexiconUnit> findTop3ByTextIgnoreCaseAndLanguage_Code(String text, String code);
     List<LexiconUnit> findByLanguage_Code(String code); // ví dụ: "ja"
     List<LexiconUnit> findByType(String type); // ví dụ: "vocabulary", "phrase"
     List<LexiconUnit> findByLanguage_CodeAndType(String languageCode, String type); // ví dụ: "ja", "vocabulary"

@@ -1,6 +1,6 @@
 package com.example.infinityweb_be.service.skill;
 
-import com.example.infinityweb_be.domain.dto.SpeakingScoreDto;
+import com.example.infinityweb_be.domain.dto.skills.SpeakingScoreDto;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.gax.core.FixedCredentialsProvider;
@@ -420,4 +420,5 @@ public class SpeakingService {
         }
     }
     private static class Word { final String text; final long start,end; Word(String t,long s,long e){text=t;start=s;end=e;} }
+
 }

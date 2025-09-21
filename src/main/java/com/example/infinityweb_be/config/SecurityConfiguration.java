@@ -48,12 +48,30 @@ public class SecurityConfiguration {
             "/api/lexicon/units",
             "/api/ai/lexicon/suggest",
             "/api/tts/**",
+            "/api/ai/speaking/assess",
+            "/api/ai/speaking/assess-json",
+            "/api/ai/speaking/ai-assess",
+            "/api/ai/speaking/test-assess",
+            "/api/ai/speaking/upload-assess",
+            "/api/ai/speaking/upload-assess-with-transcript",
             "/api/dictionary/**",
+            "/api/tooltip/**",
             "/api/momo/**", "/api/vnpay/**", "/api/sepay/**",
             "/client/api/course/**",
             "/api/users/email/**",
+            "/client/api/lexicon/gloss/**",
             "/api/student/dashboard/public", "/api/student/course/public/**",
-            "/api/student/quiz/lesson/**"
+            "/api/student/quiz/lesson/**",
+            // ✅ Add lessons endpoints for development
+            "/api/lessons/**",
+            // ✅ Add courses endpoints for development
+            "/api/courses/**",
+            // ✅ Add languages endpoints for development
+            "/api/languages/**",
+            // ✅ Add modules endpoints for development
+            "/api/modules/**",
+            // ✅ Add uploads endpoints for development
+            "/api/uploads/**"
     );
 
     private final JwtAuthFilter jwtAuthFilter;
