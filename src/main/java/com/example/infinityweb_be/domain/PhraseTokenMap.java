@@ -1,12 +1,16 @@
 package com.example.infinityweb_be.domain;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 // PhraseTokenMap.java
 @Entity
 @Table(name = "phrase_token_map")
+@Getter
+@Setter
 public class PhraseTokenMap {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

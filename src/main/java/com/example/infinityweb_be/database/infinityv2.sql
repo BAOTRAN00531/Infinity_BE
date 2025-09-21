@@ -596,12 +596,12 @@ VALUES ('multiple_choice_single', N'Câu hỏi trắc nghiệm - 1 đáp án đ�
 GO
 
 -- 4.4. Languages
-INSERT INTO dbo.Languages (id, code, name)
-VALUES (1, 'vi', N'Tiếng Việt'),
-       (2, 'en', N'English'),
-       (3, 'zh', N'Chinese'),
-       (4, 'ja', N'Japanese'),
-       (5, 'ko', N'Korean')
+INSERT INTO dbo.Languages ( code, name)
+VALUES ( 'vi', N'Tiếng Việt'),
+       ( 'en', N'English'),
+       ( 'zh', N'Chinese'),
+       ( 'ja', N'Japanese'),
+       ( 'ko', N'Korean')
 GO
 
 -- 4.4. Language Templates

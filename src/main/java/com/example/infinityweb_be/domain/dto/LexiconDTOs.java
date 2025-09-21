@@ -15,6 +15,22 @@ public class LexiconDTOs {
     @Data public static class AnnotatePhraseRequest { private String text; private String langSrc; private String langDst; }
     @Data public static class TokenMapDto { private int i; private Integer lexiconId; private Integer senseId; private String gloss; private String ipa; private String audioUrl; private List<String> alt; }
     @Data public static class AnnotatePhraseResponse { private List<String> tokens; private List<TokenMapDto> map; }
+    public static record GlossItem(
+            String word, String pos, String ipa, String glossVi, String audioUrl, Double confidence
+    ) {}
 
+    public static record GlossPart(
+            int index,                 // token index trong câu
+            String token,              // text token
+            List<GlossItem> items
+    ) {}
+
+    public static record GlossRequest(String text, String lang, Long phraseId) {}
+
+    public static record GlossResponse(
+            List<String> head,         // ["what","time","is","it"]
+            List<GlossPart> parts,     // gloss từng token
+            String source              // "phrase-map" | "db" | "ai" | "mixed"
+    ) {}
       
 }

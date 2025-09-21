@@ -46,5 +46,9 @@ public class LexiconUnit {
     private String difficulty; // mức độ dễ/khó (easy, medium, hard)
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    public String getPos() {
+        return partOfSpeech;
+    }
 }
 
