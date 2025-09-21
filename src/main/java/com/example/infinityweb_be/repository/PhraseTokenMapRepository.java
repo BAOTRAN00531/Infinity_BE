@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface PhraseTokenMapRepository extends JpaRepository<PhraseTokenMap, Long> {
     List<PhraseTokenMap> findByPhraseIdOrderByTokenStartAsc(Long phraseId);
+    List<PhraseTokenMap> findByPhraseIdAndTokenStartLessThanEqualAndTokenEndGreaterThanEqual(
+            Long phraseId, Integer tokenStart, Integer tokenEnd);
 }

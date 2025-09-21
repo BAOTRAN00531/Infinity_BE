@@ -1,4 +1,4 @@
-package com.example.infinityweb_be.domain.dto;
+package com.example.infinityweb_be.domain.dto.skills;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

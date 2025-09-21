@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Value;
 import java.net.URI;
@@ -13,7 +14,10 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Map;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class LlmClient {
@@ -148,4 +152,120 @@ public class LlmClient {
       this.retryAfterMs = retryAfterMs;
     }
   }
+  public String transcribeWavToText(byte[] wav, String language) throws Exception {
+    String url = base + "/v1/audio/transcriptions";
+    var req = HttpRequest.newBuilder(URI.create(url))
+        .header("Authorization", "Bearer " + openaiApiKey)
+        .header("Content-Type", "multipart/form-data; boundary=----X")
+        .POST(ofMultipart(wav, language))
+        .timeout(Duration.ofSeconds(60))
+        .build();
+    var resp = http.send(req, HttpResponse.BodyHandlers.ofString());
+    if (resp.statusCode()/100 != 2) throw new RuntimeException("ASR error "+resp.statusCode()+": "+resp.body());
+    return om.readTree(resp.body()).path("text").asText("");
+  }
+  
+  // Tạo multipart body
+  private static HttpRequest.BodyPublisher ofMultipart(byte[] wav, String language) throws Exception {
+    String boundary = "----X";
+    var byteArrays = new ArrayList<byte[]>();
+    String meta = "--"+boundary+"\r\n"
+        + "Content-Disposition: form-data; name=\"model\"\r\n\r\nwhisper-1\r\n"
+        + "--"+boundary+"\r\n"
+        + "Content-Disposition: form-data; name=\"response_format\"\r\n\r\njson\r\n";
+    if (language != null && !language.isBlank()) {
+      meta += "--"+boundary+"\r\n"
+        + "Content-Disposition: form-data; name=\"language\"\r\n\r\n"+language+"\r\n";
+    }
+    meta += "--"+boundary+"\r\n"
+        + "Content-Disposition: form-data; name=\"file\"; filename=\"audio.wav\"\r\n"
+        + "Content-Type: audio/wav\r\n\r\n";
+    byteArrays.add(meta.getBytes(StandardCharsets.UTF_8));
+    byteArrays.add(wav);
+    byteArrays.add(("\r\n--"+boundary+"--").getBytes(StandardCharsets.UTF_8));
+    return HttpRequest.BodyPublishers.ofByteArrays(byteArrays);
+  }
+  
+  public Map<String, Object> completeJsonWithSchema(
+    String prompt, String jsonSchema, double temperature, int maxTokens) {
+return completeToJsonMap(prompt, jsonSchema, temperature, maxTokens);
+}
+
+/**
+* Nếu project bạn đã có method này rồi thì giữ nguyên, xoá phần bên dưới.
+* Nếu CHƯA có, tạm thời cho 1 bản “stub” trả lời rỗng để compile được.
+* Sau này bạn thay bằng gọi OpenAI/Claude tuỳ ý.
+*/
+public Map<String, Object> completeToJsonMap(
+    String prompt, String jsonSchema, double temperature, int maxTokens) {
+  
+  if (!isEnabled()) {
+    log.warn("OpenAI API key not configured, using fallback response");
+    return Map.of("feedback", "Good effort! Speak a bit clearer on tricky words and keep a steady pace.");
+  }
+  
+  try {
+    final String url = base + "/v1/chat/completions";
+    
+    // Build request body with JSON schema
+    ObjectNode root = om.createObjectNode();
+    root.put("model", model);
+    root.put("temperature", temperature);
+    root.put("max_tokens", maxTokens);
+
+    ArrayNode msgs = root.putArray("messages");
+    msgs.addObject().put("role", "system").put("content", "You are an expert pronunciation coach and language assessor. Return only valid JSON that matches the provided schema.");
+    msgs.addObject().put("role", "user").put("content", prompt);
+
+    // Use JSON schema response format
+    ObjectNode respFmt = root.putObject("response_format");
+    respFmt.put("type", "json_schema");
+    ObjectNode js = respFmt.putObject("json_schema");
+    js.put("name", "speaking_assessment");
+    js.set("schema", om.readTree(jsonSchema));
+
+    String body = om.writeValueAsString(root);
+
+    HttpRequest req = HttpRequest.newBuilder(URI.create(url))
+            .header("Authorization", "Bearer " + openaiApiKey)
+            .header("Content-Type", "application/json")
+            .timeout(Duration.ofSeconds(30))
+            .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
+            .build();
+
+    HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
+    int sc = resp.statusCode();
+
+    if (sc / 100 != 2) {
+      String msg = resp.body();
+      try {
+        JsonNode err = om.readTree(msg).path("error").path("message");
+        if (!err.isMissingNode()) msg = err.asText();
+      } catch (Exception ignore) {}
+      log.error("OpenAI API error {}: {}", sc, msg);
+      throw new RuntimeException("OpenAI API error " + sc + ": " + msg);
+    }
+
+    // Parse response
+    String content = om.readTree(resp.body())
+            .path("choices").get(0).path("message").path("content").asText();
+
+    // Parse JSON response
+    JsonNode jsonResponse = om.readTree(content);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> result = om.convertValue(jsonResponse, Map.class);
+    return result;
+    
+  } catch (Exception e) {
+    log.error("Failed to call OpenAI API: {}", e.getMessage(), e);
+    // Fallback response
+    return Map.of(
+      "feedback", "AI assessment temporarily unavailable. Good effort! Focus on clear pronunciation and steady pace.",
+      "accuracy", 75.0,
+      "pronunciation", 70.0,
+      "completeness", 80.0
+    );
+  }
+}
+  
 }

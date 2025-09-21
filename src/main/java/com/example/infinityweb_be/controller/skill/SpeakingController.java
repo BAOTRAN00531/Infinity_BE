@@ -1,6 +1,7 @@
 package com.example.infinityweb_be.controller.skill;
 
-import com.example.infinityweb_be.domain.dto.SpeakingScoreDto;
+import com.example.infinityweb_be.domain.SpeakingAssessRequest;
+import com.example.infinityweb_be.domain.dto.skills.SpeakingScoreDto;
 import com.example.infinityweb_be.service.skill.SpeakingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -25,7 +26,28 @@ public class SpeakingController {
         var dto = speakingService.grade(audio, null, lang, target, questionId);
         return ResponseEntity.ok(dto);
     }
+    @PostMapping(path = "/assess", consumes = {"multipart/form-data"})
+    public ResponseEntity<SpeakingScoreDto> assessMultipart(
+            @RequestPart("audio") MultipartFile audio,
+            @RequestPart(value = "lang", required = false) String lang,
+            @RequestPart(value = "target", required = false) String target,
+            @RequestPart(value = "questionId", required = false) Long questionId
+    ) throws Exception {
 
+        var score = speakingService.grade(audio, null, lang, target, questionId);
+        return ResponseEntity.ok(score);
+    }
+    @PostMapping(path = "/assess-json", consumes = "application/json", produces = "application/json")
+    public ResponseEntity<SpeakingScoreDto> assessJson(@RequestBody SpeakingAssessRequest req) throws Exception {
+        var score = speakingService.grade(
+                null,
+                req.getAudioBase64(),
+                (req.getLang() == null || req.getLang().isBlank()) ? "en-US" : req.getLang(),
+                req.getTarget(),
+                req.getQuestionId()
+        );
+        return ResponseEntity.ok(score);
+    }
     // 2) Gửi base64 (JSON): audioBase64 + (target | questionId) + lang
     @PostMapping(value = "/score-base64", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<SpeakingScoreDto> scoreBase64(@RequestBody ScoreBase64Req req) throws Exception {

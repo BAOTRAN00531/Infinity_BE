@@ -170,6 +170,7 @@ public class UserService {
 
         user.setFullName(profileUpdate.getFullName());
         user.setEmail(profileUpdate.getEmail());
+        user.setAvatar(profileUpdate.getAvatar()); // ✅ Lưu URL avatar
         // Có thể thêm logic kiểm tra email đã tồn tại hay chưa
         userRepository.save(user);
     }
