@@ -7,10 +7,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface UserQuestionProgressRepository extends JpaRepository<UserQuestionProgressEntity, Long> {
 
+    Optional<UserQuestionProgressEntity> findByUser_IdAndQuestion_Id(Integer userId, Integer questionId);
 
     @Query(value = """
             SELECT q.lesson_id                                 AS lessonId,
@@ -26,4 +28,6 @@ public interface UserQuestionProgressRepository extends JpaRepository<UserQuesti
             GROUP BY q.lesson_id
             """, nativeQuery = true)
     List<UserQuestionProgressDto> getUserQuestionProgress(Integer userId, List<Integer> lessonIds);
+
+    List<UserQuestionProgressEntity> findByUser_IdAndLesson_IdAndIsCompleted(Integer userId, Integer lessonId, boolean isCompleted);
 }
