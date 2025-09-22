@@ -1,5 +1,6 @@
 package com.example.infinityweb_be.entity;
 
+import com.example.infinityweb_be.domain.LearningModule;
 import com.example.infinityweb_be.domain.Lesson;
 import com.example.infinityweb_be.domain.Question;
 import com.example.infinityweb_be.domain.User;
@@ -27,6 +28,10 @@ public class UserQuestionProgressEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "module_id", nullable = false)
+    private LearningModule module;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "lesson_id", nullable = false)
