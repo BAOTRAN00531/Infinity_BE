@@ -400,7 +400,7 @@ ALTER TABLE dbo.Order_Details
     ALTER COLUMN course_id INT NULL;
 GO
 
-CREATE TABLE user_question_progress
+CREATE TABLE dbo.user_question_progress
 (
     id           bigint IDENTITY (1, 1) NOT NULL,
     user_id      int                    NOT NULL,
@@ -412,15 +412,23 @@ CREATE TABLE user_question_progress
 )
 GO
 
+ALTER TABLE dbo.user_question_progress
+    ADD module_id INT NOT NULL;
+GO
+
 ALTER TABLE user_question_progress
+    ADD CONSTRAINT FK_USER_QUESTION_PROGRESS_ON_MODULE FOREIGN KEY (module_id) REFERENCES modules (id)
+GO
+
+ALTER TABLE dbo.user_question_progress
     ADD CONSTRAINT FK_USER_QUESTION_PROGRESS_ON_LESSON FOREIGN KEY (lesson_id) REFERENCES lessons (id)
 GO
 
-ALTER TABLE user_question_progress
+ALTER TABLE dbo.user_question_progress
     ADD CONSTRAINT FK_USER_QUESTION_PROGRESS_ON_QUESTION FOREIGN KEY (question_id) REFERENCES questions (id)
 GO
 
-ALTER TABLE user_question_progress
+ALTER TABLE dbo.user_question_progress
     ADD CONSTRAINT FK_USER_QUESTION_PROGRESS_ON_USER FOREIGN KEY (user_id) REFERENCES users (id)
 GO
 
@@ -596,12 +604,12 @@ VALUES ('multiple_choice_single', N'Câu hỏi trắc nghiệm - 1 đáp án đ�
 GO
 
 -- 4.4. Languages
-INSERT INTO dbo.Languages ( code, name)
-VALUES ( 'vi', N'Tiếng Việt'),
-       ( 'en', N'English'),
-       ( 'zh', N'Chinese'),
-       ( 'ja', N'Japanese'),
-       ( 'ko', N'Korean')
+INSERT INTO dbo.Languages (code, name)
+VALUES ('vi', N'Tiếng Việt'),
+       ('en', N'English'),
+       ('zh', N'Chinese'),
+       ('ja', N'Japanese'),
+       ('ko', N'Korean')
 GO
 
 -- 4.4. Language Templates
@@ -980,6 +988,79 @@ GO
 -- INSERT INTO dbo.Order_Details (order_id, course_id ,service_name, service_desc, price)
 -- VALUES (1, 1, N'Unlock full khóa học 1 năm', N'Truy cập khoá học trong 1 năm', 1000000)
 -- GO
+
+--------------------------------------------------------------------------------
+-- 4.12. LESSON 1 QUESTIONS - Module 1: Getting Started - English Alphabet and Sounds
+--------------------------------------------------------------------------------
+-- MC (Multiple Choice Single Answer) and MCM (Multiple Choice Multiple answers) questions
+
+-- Question 1: Which letter comes after 'M' in the English alphabet?
+INSERT INTO dbo.Questions
+(course_id, lesson_id, question_text, question_type_id, difficulty, points, created_by)
+VALUES (2, 52, N'Which letter comes after ''M'' in the English alphabet?',
+        (SELECT id FROM dbo.Question_Types WHERE code = 'multiple_choice_single'),
+        'easy', 5, 1);
+
+DECLARE @Question1_Id INT = SCOPE_IDENTITY();
+
+-- Insert options for Question 1
+INSERT INTO dbo.Question_Options (question_id, option_text, is_correct, position)
+VALUES (@Question1_Id, N'L', 0, 1),
+       (@Question1_Id, N'N', 1, 2), -- Correct answer
+       (@Question1_Id, N'O', 0, 3),
+       (@Question1_Id, N'P', 0, 4);
+GO
+
+-- Question 2: How many letters are there in the English alphabet?
+INSERT INTO dbo.Questions
+(course_id, lesson_id, question_text, question_type_id, difficulty, points, created_by)
+VALUES (2, 52, N'How many letters are there in the English alphabet?',
+        (SELECT id FROM dbo.Question_Types WHERE code = 'multiple_choice_single'),
+        'easy', 5, 1);
+
+DECLARE @Question2_Id INT = SCOPE_IDENTITY();
+
+INSERT INTO dbo.Question_Options (question_id, option_text, is_correct, position)
+VALUES (@Question2_Id, N'24', 0, 1),
+       (@Question2_Id, N'25', 0, 2),
+       (@Question2_Id, N'26', 1, 3), -- Correct answer
+       (@Question2_Id, N'27', 0, 4);
+GO
+
+-- Question 4: Which of these is a vowel?
+INSERT INTO dbo.Questions
+(course_id, lesson_id, question_text, question_type_id, difficulty, points, created_by)
+VALUES (2, 52, N'Which of these is a vowel?',
+        (SELECT id FROM dbo.Question_Types WHERE code = 'multiple_choice_single'),
+        'easy', 5, 1);
+
+DECLARE @Question4_Id INT = SCOPE_IDENTITY();
+
+INSERT INTO dbo.Question_Options (question_id, option_text, is_correct, position)
+VALUES (@Question4_Id, N'B', 0, 1),
+       (@Question4_Id, N'D', 0, 2),
+       (@Question4_Id, N'E', 1, 3), -- Correct answer
+       (@Question4_Id, N'F', 0, 4);
+GO
+
+-- Question 5: Select all the vowels from the options below: (MCM - Multiple Choice Multiple answers)
+INSERT INTO dbo.Questions
+(course_id, lesson_id, question_text, question_type_id, difficulty, points, created_by)
+VALUES (2, 52, N'Select all the vowels from the options below:',
+        (SELECT id FROM dbo.Question_Types WHERE code = 'multiple_choice_multi'),
+        'medium', 10, 1);
+
+DECLARE @Question5_Id INT = SCOPE_IDENTITY();
+
+INSERT INTO dbo.Question_Options (question_id, option_text, is_correct, position)
+VALUES (@Question5_Id, N'A', 1, 1), -- Correct answer
+       (@Question5_Id, N'B', 0, 2),
+       (@Question5_Id, N'E', 1, 3), -- Correct answer
+       (@Question5_Id, N'F', 0, 4),
+       (@Question5_Id, N'I', 1, 5), -- Correct answer
+       (@Question5_Id, N'J', 0, 6);
+
+GO
 
 --------------------------------------------------------------------------------
 -- 5. CHỈ MỤC TỐI ƯU HIỆU SUẤT

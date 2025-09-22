@@ -4,6 +4,7 @@ package com.example.infinityweb_be.domain.dto.question.student;
 
 import com.example.infinityweb_be.domain.dto.question.admin.MediaDto;
 import lombok.Data;
+
 import java.util.List;
 
 @Data
@@ -14,6 +15,7 @@ public class StudentQuizQuestionDto {
     private String difficulty;
     private Integer points;
     private MediaDto media;
+    private boolean isCompleted;
     private List<StudentQuizOptionDto> options;
     private List<StudentQuizAnswerDto> answers;
 }
