@@ -43,7 +43,7 @@ public class SecurityConfiguration {
 
     // ✅ thêm đầy đủ endpoint public cho AI suggest + dictionary + TTS
     private static final List<String> PUBLIC_ENDPOINTS = List.of(
-            "/", "/auth/**", "/oauth2/**", "/uploads/**",
+            "/", "/auth/**", "/api/auth/**", "/oauth2/**", "/uploads/**",
             "/api/lexicon/test", "/api/lexicon/test-data", "/api/lexicon/phrases",
             "/api/lexicon/units",
             "/api/ai/lexicon/suggest",

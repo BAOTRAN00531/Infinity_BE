@@ -6,74 +6,72 @@ import com.example.infinityweb_be.domain.dto.question.admin.QuestionCreateDto;
 import com.example.infinityweb_be.domain.dto.question.admin.QuestionResponseDto;
 import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
+import com.example.infinityweb_be.request.QuestionUpsertRequest;
 import com.example.infinityweb_be.service.lesson.LessonService;
 import com.example.infinityweb_be.service.question.QuestionService;
+import com.example.infinityweb_be.service.question.managment.QuestionAudioService;
+import com.example.infinityweb_be.service.question.managment.QuestionCommandService;
+import com.example.infinityweb_be.service.question.managment.QuestionQueryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
-@RestController
-@RequestMapping("/api/questions")
-@RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
+@RestController
+@RequestMapping("/api/admin/questions")
+@RequiredArgsConstructor
 public class AdminQuestionController {
-    private final QuestionService questionService;
-    private final UserRepository userRepository;
-    private final LessonRepository lessonRepository;
-    private final AuthHelper authHelper;
-    private final LessonService lessonService;
-
-    @GetMapping("/{id}")
-    public QuestionResponseDto getById(@PathVariable Integer id) {
-        return questionService.getById(id);
-    }
-
-    @GetMapping
-    public List<QuestionResponseDto> getByLesson(@RequestParam Integer lessonId) {
-        return questionService.getByLessonId(lessonId);
-    }
-
-    @GetMapping("/by-module/{moduleId}")
-    public List<LessonDto> getLessonsByModule(@PathVariable Integer moduleId) {
-        return lessonService.getByModuleIdDto(moduleId);
-    }
-
-    @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN')")
-    public List<QuestionResponseDto> getAllQuestions() {
-        return questionService.getAll();
-    }
+    private final QuestionCommandService questionCommandService;
+    private final QuestionQueryService questionQueryService;
+    private final QuestionAudioService questionAudioService;
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public QuestionResponseDto create(@Valid @RequestBody QuestionCreateDto dto,
-                                      JwtAuthenticationToken token) {
-        int adminId = authHelper.getCurrentUserId(token);
-        return questionService.create(dto, adminId);
+    public ResponseEntity<?> create(@RequestBody @Valid QuestionUpsertRequest req) {
+        Long id = questionCommandService.create(req);
+        return ResponseEntity.ok(java.util.Map.of("id", id)); // ← luôn ra {"id": 123}
     }
 
     @PutMapping("/{id}")
-    public QuestionResponseDto update(@PathVariable Integer id,
-                                      @Valid @RequestBody QuestionCreateDto dto,
-                                      JwtAuthenticationToken token) {
-        int adminId = authHelper.getCurrentUserId(token);
-        return questionService.update(id, dto, adminId);
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody @Valid QuestionUpsertRequest req) {
+        return ResponseEntity.ok(questionCommandService.update(id, req));
     }
+
 
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Integer id) {
-        questionService.delete(id);
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        questionCommandService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{id}/validate")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void validate(@PathVariable Integer id) {
-        questionService.validateQuestionBeforeUse(id);
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> get(@PathVariable Long id) {
+        return ResponseEntity.ok(questionQueryService.getDetail(id));
+    }
+    @GetMapping("/lessons/{lessonId}")
+    public ResponseEntity<?> listByLesson(
+            @PathVariable Integer lessonId,
+            @RequestParam(required = false) Integer questionTypeId
+    ) {
+        if (questionTypeId != null) {
+            return ResponseEntity.ok(questionQueryService.listByLessonAndType(lessonId, questionTypeId));
+        }
+        return ResponseEntity.ok(questionQueryService.listByLesson(lessonId));
+    }
+    @PostMapping("/{id}/generate-audio")
+    public ResponseEntity<?> generateAudio(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, Object> body
+    ) {
+        // body có thể chứa voice override: { "engine": "...", "voice": "...", "speed": 1.0, ... }
+        String url = questionAudioService.generateAudio(id, body);
+        return ResponseEntity.ok(Map.of("audioUrl", url));
     }
 }

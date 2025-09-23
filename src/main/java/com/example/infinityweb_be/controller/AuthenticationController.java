@@ -46,7 +46,7 @@ import java.util.Optional;
 import java.util.Random;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 @Slf4j
 public class AuthenticationController {
@@ -76,6 +76,8 @@ public class AuthenticationController {
 
     @PostMapping("/login")
     public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
+        System.out.println("🔍 Login request received: " + loginDTO.getUsername() + " / " + loginDTO.getPassword());
+        System.out.println("🔍 LoginDTO object: " + loginDTO);
         // 1. Xác thực
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginDTO.getUsername(), loginDTO.getPassword())
