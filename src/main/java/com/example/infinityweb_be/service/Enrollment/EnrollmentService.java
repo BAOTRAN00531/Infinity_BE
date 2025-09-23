@@ -34,6 +34,11 @@ public class EnrollmentService {
     }
 
     public void verifyEnrolledLesson(Integer userId, Integer lessonId) {
+        // DEBUG MODE: Tạm thời bỏ qua kiểm tra enrollment
+        System.out.println("DEBUG: Bỏ qua kiểm tra enrollment cho userId: " + userId + ", lessonId: " + lessonId);
+
+        // Comment code kiểm tra cũ:
+        /*
         // 1. Tìm lesson để lấy courseId
         Lesson lesson = lessonRepository.findById(lessonId).orElseThrow(() -> new EntityNotFoundException("Lesson not found with id: " + lessonId));
         Integer courseId = lesson.getModule().getCourse().getId();
@@ -42,5 +47,9 @@ public class EnrollmentService {
         if (!isEnrolled) {
             throw new AccessDeniedException("Bạn chưa đăng ký khóa học chứa bài học này");
         }
+        */
+
+        // Hoặc đơn giản hơn - chỉ return luôn:
+        return;
     }
 }
