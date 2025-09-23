@@ -624,10 +624,10 @@ VALUES ('multiple_choice_single', N'Câu hỏi trắc nghiệm - 1 đáp án đ�
        ('reorder_words', N'Sắp xếp từ thành câu đúng', 4, 0, 0),
        ('text_input', N'Nhập câu trả lời từ bàn phím', 0, 0, 0),
        ('fill_in_the_blank', N'Điền vào chỗ trống', 0, 0, 0),
-       ('speaking', N'Phát âm', 0, 0, 0),
-       ('matching', N'Ghép đáp án', 0, 0, 0),
-       ('single_choice_image', N'Chọn hình ảnh', 0, 0, 0),
-         ('listening', N'Nghe và trả lời', 0, 0, 0),
+       ('speaking', N'Phát âm', 2, 0, 0),
+       ('matching', N'Ghép đáp án', 2, 0, 0),
+       ('single_choice_image', N'Chọn hình ảnh', 2, 0, 0),
+         ('listening', N'Nghe và trả lời', 0, 1, 1),
 GO
 
 -- 4.4. Languages
