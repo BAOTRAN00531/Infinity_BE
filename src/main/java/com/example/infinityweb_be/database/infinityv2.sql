@@ -189,26 +189,32 @@ CREATE TABLE dbo.Questions
     FOREIGN KEY (updated_by) REFERENCES dbo.Users (id)
 )
 GO
-ALTER TABLE Questions ADD payload_json NVARCHAR(MAX) NULL;
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Question_Payloads]') AND type in (N'U'))
+ALTER TABLE Questions
+    ADD payload_json NVARCHAR(MAX) NULL;
+IF NOT EXISTS (SELECT *
+               FROM sys.objects
+               WHERE object_id = OBJECT_ID(N'[dbo].[Question_Payloads]')
+                 AND type IN (N'U'))
     BEGIN
-        CREATE TABLE [dbo].[Question_Payloads] (
-                                                   [question_id] INT NOT NULL PRIMARY KEY,
-                                                   [payload_json] NVARCHAR(MAX) NULL,
-                                                   CONSTRAINT [FK_Question_Payloads_Questions] FOREIGN KEY ([question_id])
-                                                       REFERENCES [dbo].[Questions]([id]) ON DELETE CASCADE
+        CREATE TABLE [dbo].[Question_Payloads]
+        (
+            [question_id]  INT           NOT NULL PRIMARY KEY,
+            [payload_json] NVARCHAR(MAX) NULL,
+            CONSTRAINT [FK_Question_Payloads_Questions] FOREIGN KEY ([question_id])
+                REFERENCES [dbo].[Questions] ([id]) ON DELETE CASCADE
         );
     END
-IF NOT EXISTS (
-    SELECT * FROM sys.objects
-    WHERE object_id = OBJECT_ID(N'[dbo].[Question_Payloads]') AND type in (N'U')
-)
+IF NOT EXISTS (SELECT *
+               FROM sys.objects
+               WHERE object_id = OBJECT_ID(N'[dbo].[Question_Payloads]')
+                 AND type IN (N'U'))
     BEGIN
-        CREATE TABLE [dbo].[Question_Payloads] (
-                                                   [question_id] INT NOT NULL PRIMARY KEY,
-                                                   [payload_json] NVARCHAR(MAX) NULL,
-                                                   CONSTRAINT [FK_Question_Payloads_Questions] FOREIGN KEY ([question_id])
-                                                       REFERENCES [dbo].[Questions]([id]) ON DELETE CASCADE
+        CREATE TABLE [dbo].[Question_Payloads]
+        (
+            [question_id]  INT           NOT NULL PRIMARY KEY,
+            [payload_json] NVARCHAR(MAX) NULL,
+            CONSTRAINT [FK_Question_Payloads_Questions] FOREIGN KEY ([question_id])
+                REFERENCES [dbo].[Questions] ([id]) ON DELETE CASCADE
         );
     END
 
@@ -627,7 +633,7 @@ VALUES ('multiple_choice_single', N'Câu hỏi trắc nghiệm - 1 đáp án đ�
        ('speaking', N'Phát âm', 2, 0, 0),
        ('matching', N'Ghép đáp án', 2, 0, 0),
        ('single_choice_image', N'Chọn hình ảnh', 2, 0, 0),
-         ('listening', N'Nghe và trả lời', 0, 1, 1),
+       ('listening', N'Nghe và trả lời', 0, 1, 1)
 GO
 
 -- 4.4. Languages
@@ -646,230 +652,6 @@ VALUES ('vi', 'Vietnamese'),
        ('jp', 'Japanese'),
        ('cn', 'Chinese')
 GO
-
--- 4.5. Sample Course
-INSERT INTO dbo.Courses (name, language_id, created_by)
-VALUES (N'Khoá học mẫu', 1, 1)
-GO
-
--- 4.5.1. English for Beginners Course
-INSERT INTO dbo.Courses (name, description, language_id, created_by, level, duration, status, price, thumbnail)
-VALUES (N'English for Beginners',
-        N'Complete beginner English course with 10 modules covering essential communication skills', 2, 1,
-        N'Beginner (A1)', N'25-30 weeks', N'active', 199.99, N'english-beginner-thumb.jpg')
-GO
-
--- 4.6. Sample Module
-INSERT INTO dbo.Modules (course_id, name, created_by)
-VALUES (1, N'Module 1', 1)
-GO
-
--- 4.6.1. English Course Modules
-INSERT INTO dbo.Modules (course_id, name, description, created_by, [order], duration, status)
-VALUES (2, N'Getting Started', N'Basic communication fundamentals', 1, 1, N'2-3 weeks', N'active'),
-       (2, N'Personal Information', N'Self-introduction and basic personal details', 1, 2, N'2-3 weeks', N'active'),
-       (2, N'Family and People', N'Family relationships and describing people', 1, 3, N'3 weeks', N'active'),
-       (2, N'Daily Life and Routines', N'Daily activities and time expressions', 1, 4, N'3 weeks', N'active'),
-       (2, N'Home and Environment', N'Home vocabulary and location expressions', 1, 5, N'3 weeks', N'active'),
-       (2, N'Food and Drinks', N'Food vocabulary and expressing preferences', 1, 6, N'3 weeks', N'active'),
-       (2, N'Shopping and Money', N'Shopping vocabulary and transactions', 1, 7, N'3 weeks', N'active'),
-       (2, N'Work and Activities', N'Jobs, hobbies, and question formation', 1, 8, N'3 weeks', N'active'),
-       (2, N'Transportation and Directions', N'Transportation and navigation', 1, 9, N'3 weeks', N'active'),
-       (2, N'Review and Communication', N'Integration and past tense introduction', 1, 10, N'3-4 weeks', N'active')
-GO
-
--- 4.7.1. English Course Lessons
--- Module 1: Getting Started (module_id = 2)
-INSERT INTO dbo.Lessons (module_id, name, description, content, type, [order], duration, status, created_by, video_url,
-                         icon)
-VALUES (2, N'English Alphabet and Sounds', N'26 letters and their pronunciation',
-        N'Learn the English alphabet and basic phonetic sounds. Practice letter recognition and pronunciation.',
-        'video', 1, N'15 minutes', N'active', 1, N'https://example.com/lessons/alphabet', N'type'),
-       (2, N'Numbers 1-20', N'Counting from 1 to 20',
-        N'Master numbers 1-20 with pronunciation practice and basic math vocabulary.', 'video', 2, N'12 minutes',
-        N'active', 1, N'https://example.com/lessons/numbers', N'hash'),
-       (2, N'Basic Greetings', N'Common greeting expressions',
-        N'Learn essential greetings for formal and informal situations.', 'video', 3, N'10 minutes', N'active', 1,
-        N'https://example.com/lessons/greetings', N'hand-heart'),
-       (2, N'Courtesy Words', N'Please, thank you, excuse me', N'Master polite expressions for everyday interactions.',
-        'video', 4, N'8 minutes', N'active', 1, N'https://example.com/lessons/courtesy', N'heart-handshake'),
-       (2, N'First Conversations', N'Combining basic elements',
-        N'Practice simple dialogues using greetings and courtesy words.', 'video', 5, N'18 minutes', N'active', 1,
-        N'https://example.com/lessons/conversations1', N'messages-square'),
-
--- Module 2: Personal Information (module_id = 3)
-       (3, N'What''s Your Name?', N'Asking and giving names',
-        N'Learn to introduce yourself and ask others'' names politely.', 'video', 1, N'10 minutes', N'active', 1,
-        N'https://example.com/lessons/names', N'user'),
-       (3, N'Where Are You From?', N'Countries and nationalities',
-        N'Express your origin and learn about different countries and nationalities.', 'video', 2, N'15 minutes',
-        N'active', 1, N'https://example.com/lessons/countries', N'map-pin'),
-       (3, N'How Old Are You?', N'Ages and numbers 20-100', N'Ask and answer about age using larger numbers.', 'video',
-        3, N'12 minutes', N'active', 1, N'https://example.com/lessons/age', N'calendar'),
-       (3, N'Personal Pronouns', N'I, you, he, she, we, they', N'Master subject pronouns and their usage in sentences.',
-        'video', 4, N'14 minutes', N'active', 1, N'https://example.com/lessons/pronouns', N'users'),
-       (3, N'The Verb ''To Be''', N'Am, is, are forms',
-        N'Learn the most important verb in English and its present tense forms.', 'video', 5, N'20 minutes', N'active',
-        1, N'https://example.com/lessons/tobe', N'equal'),
-
--- Module 3: Family and People (module_id = 4)
-       (4, N'Family Members', N'Parents, siblings, relatives',
-        N'Learn vocabulary for family relationships and family tree.', 'video', 1, N'16 minutes', N'active', 1,
-        N'https://example.com/lessons/family', N'users-round'),
-       (4, N'Describing Appearance', N'Hair, eyes, height', N'Describe physical characteristics of people.', 'video', 2,
-        N'18 minutes', N'active', 1, N'https://example.com/lessons/appearance', N'eye'),
-       (4, N'Age and Personality', N'Character traits and age groups',
-        N'Express personality traits and different life stages.', 'video', 3, N'15 minutes', N'active', 1,
-        N'https://example.com/lessons/personality', N'smile'),
-       (4, N'Possessive Adjectives', N'My, your, his, her, our, their',
-        N'Show ownership and relationships using possessive adjectives.', 'video', 4, N'17 minutes', N'active', 1,
-        N'https://example.com/lessons/possessive', N'hand'),
-       (4, N'Questions About People', N'Who, what, how questions',
-        N'Ask and answer questions about people and their characteristics.', 'video', 5, N'19 minutes', N'active', 1,
-        N'https://example.com/lessons/people-questions', N'help-circle'),
-
--- Module 4: Daily Life and Routines (module_id = 5)
-       (5, N'Daily Activities', N'Morning and evening routines',
-        N'Learn vocabulary for common daily activities and routines.', 'video', 1, N'14 minutes', N'active', 1,
-        N'https://example.com/lessons/daily-activities', N'sun'),
-       (5, N'Time and Clock', N'Telling time and time expressions',
-        N'Master time expressions and how to read analog and digital clocks.', 'video', 2, N'22 minutes', N'active', 1,
-        N'https://example.com/lessons/time', N'clock'),
-       (5, N'Days of the Week', N'Monday through Sunday', N'Learn days of the week and weekly routines.', 'video', 3,
-        N'11 minutes', N'active', 1, N'https://example.com/lessons/days', N'calendar-days'),
-       (5, N'Present Simple Tense', N'Regular verb conjugation',
-        N'Master the present simple tense for describing habits and facts.', 'video', 4, N'25 minutes', N'active', 1,
-        N'https://example.com/lessons/present-simple', N'repeat'),
-       (5, N'Frequency Adverbs', N'Always, usually, sometimes, never', N'Express how often you do activities.', 'video',
-        5, N'16 minutes', N'active', 1, N'https://example.com/lessons/frequency', N'timer'),
-
--- Module 5: Home and Environment (module_id = 6)
-       (6, N'Rooms in the House', N'Kitchen, bedroom, bathroom, living room',
-        N'Learn names of rooms and their functions.', 'video', 1, N'13 minutes', N'active', 1,
-        N'https://example.com/lessons/rooms', N'home'),
-       (6, N'Furniture and Objects', N'Common household items', N'Vocabulary for furniture and household objects.',
-        'video', 2, N'17 minutes', N'active', 1, N'https://example.com/lessons/furniture', N'armchair'),
-       (6, N'Prepositions of Place', N'In, on, under, next to, behind', N'Describe location and position of objects.',
-        'video', 3, N'19 minutes', N'active', 1, N'https://example.com/lessons/prepositions', N'move-3d'),
-       (6, N'There is/There are', N'Describing what exists', N'Express existence and quantity of things in places.',
-        'video', 4, N'21 minutes', N'active', 1, N'https://example.com/lessons/there-is-are', N'search'),
-       (6, N'Describing Your Home', N'Combining vocabulary and grammar',
-        N'Practice describing your living situation using new vocabulary.', 'video', 5, N'18 minutes', N'active', 1,
-        N'https://example.com/lessons/describe-home', N'house'),
-
--- Module 6: Food and Drinks (module_id = 7)
-       (7, N'Common Foods', N'Fruits, vegetables, basic food groups',
-        N'Learn essential food vocabulary and categories.', 'video', 1, N'15 minutes', N'active', 1,
-        N'https://example.com/lessons/foods', N'apple'),
-       (7, N'Drinks and Beverages', N'Hot and cold drinks', N'Vocabulary for different types of beverages.', 'video', 2,
-        N'12 minutes', N'active', 1, N'https://example.com/lessons/drinks', N'coffee'),
-       (7, N'Meals of the Day', N'Breakfast, lunch, dinner', N'Learn about meal times and typical foods for each meal.',
-        'video', 3, N'14 minutes', N'active', 1, N'https://example.com/lessons/meals', N'utensils'),
-       (7, N'Likes and Dislikes', N'Expressing food preferences',
-        N'Express what you like and don''t like to eat and drink.', 'video', 4, N'16 minutes', N'active', 1,
-        N'https://example.com/lessons/preferences', N'thumbs-up'),
-       (7, N'At the Restaurant', N'Ordering food and restaurant vocabulary',
-        N'Practice ordering food and interacting in restaurant situations.', 'video', 5, N'20 minutes', N'active', 1,
-        N'https://example.com/lessons/restaurant', N'chef-hat'),
-
--- Module 7: Shopping and Money (module_id = 8)
-       (8, N'Numbers and Prices', N'Large numbers and currency',
-        N'Learn numbers 100-1000 and how to talk about prices.', 'video', 1, N'17 minutes', N'active', 1,
-        N'https://example.com/lessons/prices', N'dollar-sign'),
-       (8, N'Clothing Items', N'Basic wardrobe vocabulary', N'Learn names of clothing items and accessories.', 'video',
-        2, N'15 minutes', N'active', 1, N'https://example.com/lessons/clothing', N'shirt'),
-       (8, N'At the Store', N'Shopping locations and interactions',
-        N'Navigate different types of stores and shopping situations.', 'video', 3, N'18 minutes', N'active', 1,
-        N'https://example.com/lessons/stores', N'store'),
-       (8, N'Making Purchases', N'Buying and payment vocabulary',
-        N'Practice polite purchasing interactions and payment methods.', 'video', 4, N'19 minutes', N'active', 1,
-        N'https://example.com/lessons/purchases', N'credit-card'),
-       (8, N'Quantities and Containers', N'Some, any, much, many',
-        N'Learn to express quantities and use appropriate containers.', 'video', 5, N'21 minutes', N'active', 1,
-        N'https://example.com/lessons/quantities', N'package'),
-
--- Module 8: Work and Activities (module_id = 9)
-       (9, N'Jobs and Occupations', N'Common professions', N'Learn vocabulary for different jobs and professions.',
-        'video', 1, N'16 minutes', N'active', 1, N'https://example.com/lessons/jobs', N'briefcase'),
-       (9, N'Workplace Vocabulary', N'Office and work-related terms',
-        N'Vocabulary for workplace environments and activities.', 'video', 2, N'14 minutes', N'active', 1,
-        N'https://example.com/lessons/workplace', N'building'),
-       (9, N'Hobbies and Free Time', N'Leisure activities', N'Express what you do for fun and relaxation.', 'video', 3,
-        N'17 minutes', N'active', 1, N'https://example.com/lessons/hobbies', N'gamepad-2'),
-       (9, N'Present Simple Questions', N'Do/Does question formation',
-        N'Learn to ask yes/no questions in present simple tense.', 'video', 4, N'23 minutes', N'active', 1,
-        N'https://example.com/lessons/questions', N'message-circle-question'),
-       (9, N'WH- Questions', N'What, where, when, who, why, how',
-        N'Master information questions for getting specific details.', 'video', 5, N'25 minutes', N'active', 1,
-        N'https://example.com/lessons/wh-questions', N'circle-help'),
-
--- Module 9: Transportation and Directions (module_id = 10)
-       (10, N'Modes of Transportation', N'Cars, buses, trains, planes',
-        N'Learn vocabulary for different ways to travel.', 'video', 1, N'15 minutes', N'active', 1,
-        N'https://example.com/lessons/transportation', N'car'),
-       (10, N'Places in the City', N'Public buildings and locations', N'Navigate city locations and public places.',
-        'video', 2, N'18 minutes', N'active', 1, N'https://example.com/lessons/city-places', N'map'),
-       (10, N'Asking for Directions', N'Polite ways to ask for help',
-        N'Learn to ask for directions politely and clearly.', 'video', 3, N'16 minutes', N'active', 1,
-        N'https://example.com/lessons/ask-directions', N'navigation'),
-       (10, N'Giving Directions', N'Left, right, straight, landmarks',
-        N'Give clear directions using basic directional vocabulary.', 'video', 4, N'20 minutes', N'active', 1,
-        N'https://example.com/lessons/give-directions', N'signpost'),
-       (10, N'Prepositions of Movement', N'To, from, into, out of, through',
-        N'Express movement and direction with prepositions.', 'video', 5, N'22 minutes', N'active', 1,
-        N'https://example.com/lessons/movement', N'move'),
-
--- Module 10: Review and Communication (module_id = 11)
-       (11, N'Past Tense - To Be', N'Was, were forms', N'Introduction to past tense using the verb "to be".', 'video',
-        1, N'19 minutes', N'active', 1, N'https://example.com/lessons/past-tobe', N'history'),
-       (11, N'Making Plans', N'Going to + verb future', N'Express future plans and intentions.', 'video', 2,
-        N'21 minutes', N'active', 1, N'https://example.com/lessons/future-plans', N'calendar-plus'),
-       (11, N'Weather and Seasons', N'Weather descriptions and seasons',
-        N'Talk about weather conditions and seasonal activities.', 'video', 3, N'17 minutes', N'active', 1,
-        N'https://example.com/lessons/weather', N'cloud-sun'),
-       (11, N'Health and Body', N'Body parts and health expressions',
-        N'Basic health vocabulary and expressing how you feel.', 'video', 4, N'18 minutes', N'active', 1,
-        N'https://example.com/lessons/health', N'heart-pulse'),
-       (11, N'Putting It All Together', N'Comprehensive review and practice',
-        N'Review all grammar points and practice real-life conversations.', 'video', 5, N'30 minutes', N'active', 1,
-        N'https://example.com/lessons/final-review', N'graduation-cap')
-GO
-
--- 4.8. Sample Question
-INSERT INTO dbo.Questions (course_id,
-                           lesson_id,
-                           question_text,
-                           question_type_id,
-                           media_url,
-                           audio_url,
-                           video_url,
-                           created_by,
-                           difficulty,
-                           points)
-VALUES (1,
-        1,
-        N'Câu hỏi mẫu: Thủ đô của Việt Nam là gì?',
-        1,
-        NULL, NULL, NULL,
-        1,
-        'easy',
-        10)
-GO
-
--- 4.9. Sample Options
-INSERT INTO dbo.Question_Options (question_id, option_text, is_correct, position)
-VALUES (1, N'Hà Nội', 1, 1),
-       (1, N'Hồ Chí Minh', 0, 2),
-       (1, N'Đà Nẵng', 0, 4)
-GO
-
--- 4.10. Sample Answers
-INSERT INTO dbo.Question_Answers (question_id, answer_text)
-VALUES (1, N'Hà Nội'),
-       (1, N'Ha Noi')
-GO
-USE InfinityWeb;
-
 ------------------------------------------------------------
 -- R1: general_en_simple  (đã dùng cho “I have a dog”)
 ------------------------------------------------------------
@@ -1015,79 +797,6 @@ GO
 -- INSERT INTO dbo.Order_Details (order_id, course_id ,service_name, service_desc, price)
 -- VALUES (1, 1, N'Unlock full khóa học 1 năm', N'Truy cập khoá học trong 1 năm', 1000000)
 -- GO
-
---------------------------------------------------------------------------------
--- 4.12. LESSON 1 QUESTIONS - Module 1: Getting Started - English Alphabet and Sounds
---------------------------------------------------------------------------------
--- MC (Multiple Choice Single Answer) and MCM (Multiple Choice Multiple answers) questions
-
--- Question 1: Which letter comes after 'M' in the English alphabet?
-INSERT INTO dbo.Questions
-(course_id, lesson_id, question_text, question_type_id, difficulty, points, created_by)
-VALUES (2, 52, N'Which letter comes after ''M'' in the English alphabet?',
-        (SELECT id FROM dbo.Question_Types WHERE code = 'multiple_choice_single'),
-        'easy', 5, 1);
-
-DECLARE @Question1_Id INT = SCOPE_IDENTITY();
-
--- Insert options for Question 1
-INSERT INTO dbo.Question_Options (question_id, option_text, is_correct, position)
-VALUES (@Question1_Id, N'L', 0, 1),
-       (@Question1_Id, N'N', 1, 2), -- Correct answer
-       (@Question1_Id, N'O', 0, 3),
-       (@Question1_Id, N'P', 0, 4);
-GO
-
--- Question 2: How many letters are there in the English alphabet?
-INSERT INTO dbo.Questions
-(course_id, lesson_id, question_text, question_type_id, difficulty, points, created_by)
-VALUES (2, 52, N'How many letters are there in the English alphabet?',
-        (SELECT id FROM dbo.Question_Types WHERE code = 'multiple_choice_single'),
-        'easy', 5, 1);
-
-DECLARE @Question2_Id INT = SCOPE_IDENTITY();
-
-INSERT INTO dbo.Question_Options (question_id, option_text, is_correct, position)
-VALUES (@Question2_Id, N'24', 0, 1),
-       (@Question2_Id, N'25', 0, 2),
-       (@Question2_Id, N'26', 1, 3), -- Correct answer
-       (@Question2_Id, N'27', 0, 4);
-GO
-
--- Question 4: Which of these is a vowel?
-INSERT INTO dbo.Questions
-(course_id, lesson_id, question_text, question_type_id, difficulty, points, created_by)
-VALUES (2, 52, N'Which of these is a vowel?',
-        (SELECT id FROM dbo.Question_Types WHERE code = 'multiple_choice_single'),
-        'easy', 5, 1);
-
-DECLARE @Question4_Id INT = SCOPE_IDENTITY();
-
-INSERT INTO dbo.Question_Options (question_id, option_text, is_correct, position)
-VALUES (@Question4_Id, N'B', 0, 1),
-       (@Question4_Id, N'D', 0, 2),
-       (@Question4_Id, N'E', 1, 3), -- Correct answer
-       (@Question4_Id, N'F', 0, 4);
-GO
-
--- Question 5: Select all the vowels from the options below: (MCM - Multiple Choice Multiple answers)
-INSERT INTO dbo.Questions
-(course_id, lesson_id, question_text, question_type_id, difficulty, points, created_by)
-VALUES (2, 52, N'Select all the vowels from the options below:',
-        (SELECT id FROM dbo.Question_Types WHERE code = 'multiple_choice_multi'),
-        'medium', 10, 1);
-
-DECLARE @Question5_Id INT = SCOPE_IDENTITY();
-
-INSERT INTO dbo.Question_Options (question_id, option_text, is_correct, position)
-VALUES (@Question5_Id, N'A', 1, 1), -- Correct answer
-       (@Question5_Id, N'B', 0, 2),
-       (@Question5_Id, N'E', 1, 3), -- Correct answer
-       (@Question5_Id, N'F', 0, 4),
-       (@Question5_Id, N'I', 1, 5), -- Correct answer
-       (@Question5_Id, N'J', 0, 6);
-
-GO
 
 --------------------------------------------------------------------------------
 -- 5. CHỈ MỤC TỐI ƯU HIỆU SUẤT
