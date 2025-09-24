@@ -246,4 +246,8 @@ public class LearningModuleService {
 
         return dto;
     }
+
+    public Integer getInProgressModuleId(Integer courseId, Integer userId) {
+        return moduleRepository.getInProgressModuleId(courseId, userId);
+    }
 }

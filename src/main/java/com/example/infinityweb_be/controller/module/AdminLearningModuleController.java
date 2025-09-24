@@ -4,9 +4,11 @@ import com.example.infinityweb_be.common.AuthHelper;
 import com.example.infinityweb_be.domain.dto.modules.LearningModuleDto;
 import com.example.infinityweb_be.domain.dto.modules.LearningModuleRequest;
 import com.example.infinityweb_be.repository.UserRepository;
-//import com.example.infinityweb_be.service.;
+import com.example.infinityweb_be.service.UserService;
 import com.example.infinityweb_be.service.module.LearningModuleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +25,7 @@ public class AdminLearningModuleController {
 
     private final LearningModuleService moduleService;
     private final UserRepository userRepository;
+    private final UserService userService;
 
     // Lấy tất cả modules hoặc theo courseId (đã trả về DTO)
     @GetMapping
@@ -88,5 +91,13 @@ public class AdminLearningModuleController {
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Integer id) {
         moduleService.delete(id);
+    }
+
+    @GetMapping("in-progress")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<Integer> getInProgressLessons(@RequestParam Integer courseId, Principal principal) {
+        Integer userId = userService.getUserIdFromPrincipal(principal);
+        // Logic kiểm tra đã ở trong service
+        return ResponseEntity.ok(moduleService.getInProgressModuleId(courseId, userId));
     }
 }
