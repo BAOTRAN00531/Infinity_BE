@@ -20,6 +20,9 @@ import com.example.infinityweb_be.repository.question.UserQuestionProgressReposi
 import com.example.infinityweb_be.service.Enrollment.EnrollmentService;
 import com.example.infinityweb_be.service.verify.MultipleChoiceMultiQuestionVerifyService;
 import com.example.infinityweb_be.service.verify.MultipleChoiceSingleQuestionVerifyService;
+import com.example.infinityweb_be.service.verify.TextInputQuestionVerifyService;
+import com.example.infinityweb_be.service.verify.FillInTheBlankQuestionVerifyService;
+import com.example.infinityweb_be.service.verify.MatchingQuestionVerifyService;
 import com.example.infinityweb_be.service.verify.QuestionVerifyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -42,6 +45,9 @@ public class StudentQuizService {
     private final UserQuestionProgressRepository userQuestionProgressRepository;
     private final MultipleChoiceSingleQuestionVerifyService multipleChoiceSingleQuestionVerifyService;
     private final MultipleChoiceMultiQuestionVerifyService multipleChoiceMultiQuestionVerifyService;
+    private final TextInputQuestionVerifyService textInputQuestionVerifyService;
+    private final FillInTheBlankQuestionVerifyService fillInTheBlankQuestionVerifyService;
+    private final MatchingQuestionVerifyService matchingQuestionVerifyService;
     private final UserRepository userRepository;
 
     public List<StudentQuizQuestionDto> getQuizQuestionsForStudent(Integer lessonId, Integer studentId) {
@@ -149,6 +155,9 @@ public class StudentQuizService {
         return switch (questionType) {
             case MULTIPLE_CHOICE_SINGLE -> multipleChoiceSingleQuestionVerifyService;
             case MULTIPLE_SINGLE_MULTI -> multipleChoiceMultiQuestionVerifyService;
+            case TEXT_INPUT -> textInputQuestionVerifyService;
+            case FILL_IN_THE_BLANK -> fillInTheBlankQuestionVerifyService;
+            case MATCHING -> matchingQuestionVerifyService;
         };
     }
 

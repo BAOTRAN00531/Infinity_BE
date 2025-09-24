@@ -154,17 +154,18 @@ public class CourseService {
                 .map(module -> {
                     long partsCount = lessonRepository.countByModule_Id(module.getId());
 
-                    return new LearningModuleDto(
-                            module.getId(),
-                            module.getName(),
-                            module.getDescription(),
-                            course.getId(),
-                            course.getName(),
-                            module.getOrder(),
-                            module.getDuration(),
-                            module.getStatus(),
-                            partsCount
-                    );
+                    LearningModuleDto dto = new LearningModuleDto();
+                    dto.setId(module.getId());
+                    dto.setName(module.getName());
+                    dto.setDescription(module.getDescription());
+                    dto.setCourseId(course.getId());
+                    dto.setCourseName(course.getName());
+                    dto.setOrder(module.getOrder());
+                    dto.setDuration(module.getDuration());
+                    dto.setStatus(module.getStatus());
+                    dto.setPartsCount(partsCount);
+
+                    return dto;
                 })
                 .collect(Collectors.toList());
 

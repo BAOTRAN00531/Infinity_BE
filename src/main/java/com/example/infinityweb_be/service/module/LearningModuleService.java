@@ -1,11 +1,11 @@
 package com.example.infinityweb_be.service.module;
 
-import com.example.infinityweb_be.domain.course.Course;
 import com.example.infinityweb_be.domain.LearningModule;
 import com.example.infinityweb_be.domain.User;
+import com.example.infinityweb_be.domain.course.Course;
 import com.example.infinityweb_be.domain.dto.modules.LearningModuleDto;
 import com.example.infinityweb_be.domain.dto.modules.LearningModuleRequest;
-import com.example.infinityweb_be.domain.dto.order.OrderStatus;
+import com.example.infinityweb_be.domain.dto.question.student.UserModuleQuestionProgressDto;
 import com.example.infinityweb_be.domain.map.LearningModuleMapper;
 import com.example.infinityweb_be.repository.CourseRepository;
 import com.example.infinityweb_be.repository.LearningModuleRepository;
@@ -13,8 +13,7 @@ import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
 import com.example.infinityweb_be.repository.enrollment.EnrollmentRepository;
 import com.example.infinityweb_be.repository.order.OrderRepository;
-import com.example.infinityweb_be.service.Enrollment.EnrollmentService;
-import com.example.infinityweb_be.service.UserService;
+import com.example.infinityweb_be.repository.question.UserQuestionProgressRepository;
 import com.example.infinityweb_be.service.order.OrderService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -25,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,6 +38,7 @@ public class LearningModuleService {
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final UserQuestionProgressRepository userQuestionProgressRepository;
 
     private final OrderService orderService; // 👈 thêm dòng này
     private final LearningModuleMapper moduleMapper; // 👈 thêm nếu dùng mapper
@@ -157,17 +159,19 @@ public class LearningModuleService {
     // === CHUYỂN ENTITY → DTO ===
     public LearningModuleDto toDto(LearningModule module) {
         long count = lessonRepository.countByModule_Id(module.getId());
-        return new LearningModuleDto(
-                module.getId(),
-                module.getName(),                // sẽ là title trong DTO
-                module.getDescription(),
-                module.getCourse() != null ? module.getCourse().getId() : null,
-                module.getCourse() != null ? module.getCourse().getName() : null,
-                module.getOrder(),
-                module.getDuration(),
-                module.getStatus(),
-                count
-        );
+
+        LearningModuleDto dto = new LearningModuleDto();
+        dto.setId(module.getId());
+        dto.setName(module.getName());
+        dto.setDescription(module.getDescription());
+        dto.setCourseId(module.getCourse() != null ? module.getCourse().getId() : null);
+        dto.setCourseName(module.getCourse() != null ? module.getCourse().getName() : null);
+        dto.setOrder(module.getOrder());
+        dto.setDuration(module.getDuration());
+        dto.setStatus(module.getStatus());
+        dto.setPartsCount(count);
+
+        return dto;
     }
 
     public List<LearningModuleDto> getAllDto() {
@@ -196,5 +200,50 @@ public class LearningModuleService {
                 .stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
+    }
+
+    // Method to get modules with user progress
+    public List<LearningModuleDto> getByCourseIdDtoWithProgress(Integer courseId, Integer userId) {
+        List<LearningModule> modules = moduleRepository.findByCourseId(courseId);
+        List<Integer> moduleIds = modules.stream().map(LearningModule::getId).collect(Collectors.toList());
+
+        // Get progress data for all modules
+        Map<Integer, UserModuleQuestionProgressDto> progressData = userQuestionProgressRepository.getModuleProgressByUser(userId, moduleIds)
+                .stream().collect(Collectors.toMap(UserModuleQuestionProgressDto::getModuleId, Function.identity()));
+
+        // Convert modules to DTOs with progress
+        return modules.stream()
+                .map(module -> toDtoWithProgress(module, progressData.get(module.getId())))
+                .collect(Collectors.toList());
+    }
+
+    // Convert entity to DTO with progress information
+    private LearningModuleDto toDtoWithProgress(LearningModule module, UserModuleQuestionProgressDto userLessonQuestionProgressDto) {
+        LearningModuleDto dto = new LearningModuleDto();
+        dto.setId(module.getId());
+        dto.setName(module.getName());
+        dto.setDescription(module.getDescription());
+        dto.setCourseId(module.getCourse() != null ? module.getCourse().getId() : null);
+        dto.setCourseName(module.getCourse() != null ? module.getCourse().getName() : null);
+        dto.setOrder(module.getOrder());
+        dto.setDuration(module.getDuration());
+        dto.setStatus(module.getStatus());
+
+        // Set progress information
+        if (userLessonQuestionProgressDto != null) {
+            Integer totalQuestions = userLessonQuestionProgressDto.getQuestionCount();
+            Integer completedQuestions = userLessonQuestionProgressDto.getCompletedCount();
+
+            if (totalQuestions == null) totalQuestions = 0;
+            if (completedQuestions == null) completedQuestions = 0;
+
+            dto.setTotalQuestions(totalQuestions);
+            dto.setCompletedQuestions(completedQuestions);
+
+            // Calculate percentage
+            dto.setProgressPercentage(userLessonQuestionProgressDto.getProgress());
+        }
+
+        return dto;
     }
 }

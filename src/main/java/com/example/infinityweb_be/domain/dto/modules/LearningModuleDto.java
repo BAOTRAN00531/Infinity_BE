@@ -1,11 +1,8 @@
 package com.example.infinityweb_be.domain.dto.modules;
 
-import com.example.infinityweb_be.domain.dto.LessonDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -25,6 +22,10 @@ public class LearningModuleDto {
 
     private long partsCount;
 
+    // Progress fields
+    private Float progressPercentage;
+    private Integer completedQuestions;
+    private Integer totalQuestions;
 
 
     public LearningModuleDto(Integer id, String name, String description, Integer courseId, String courseName,
