@@ -233,17 +233,10 @@ public class LexiconUnitService {
         unit.setLanguage(lang);
         unit.setCreatedAt(LocalDateTime.now());
         
-        // Tự động tạo audio nếu chưa có
-        if (unit.getAudioUrl() == null || unit.getAudioUrl().isEmpty()) {
-            try {
-                String audioBase64 = textToSpeechService.synthesizeText(unit.getText(), languageCode);
-              String audioUrl = audioFileService.saveAudioFromBase64(audioBase64, unit.getText(), languageCode);
-                unit.setAudioUrl(audioUrl);
-            } catch (Exception e) {
-                // Log error nhưng không fail việc tạo lexicon unit
-                System.err.println("Failed to generate audio for lexicon unit: " + e.getMessage());
-            }
-        }
+        // Tạm thời bỏ qua việc tạo audio tự động để tránh timeout
+        // Audio sẽ được tạo sau bằng cách gọi generate-audio endpoint
+        System.out.println("📝 Lexicon unit created without audio: " + unit.getText());
+        unit.setAudioUrl(null);
         
         return repository.save(unit);
     }

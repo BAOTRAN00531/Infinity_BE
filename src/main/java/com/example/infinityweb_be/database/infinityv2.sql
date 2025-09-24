@@ -189,6 +189,28 @@ CREATE TABLE dbo.Questions
     FOREIGN KEY (updated_by) REFERENCES dbo.Users (id)
 )
 GO
+ALTER TABLE Questions ADD payload_json NVARCHAR(MAX) NULL;
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Question_Payloads]') AND type in (N'U'))
+    BEGIN
+        CREATE TABLE [dbo].[Question_Payloads] (
+                                                   [question_id] INT NOT NULL PRIMARY KEY,
+                                                   [payload_json] NVARCHAR(MAX) NULL,
+                                                   CONSTRAINT [FK_Question_Payloads_Questions] FOREIGN KEY ([question_id])
+                                                       REFERENCES [dbo].[Questions]([id]) ON DELETE CASCADE
+        );
+    END
+IF NOT EXISTS (
+    SELECT * FROM sys.objects
+    WHERE object_id = OBJECT_ID(N'[dbo].[Question_Payloads]') AND type in (N'U')
+)
+    BEGIN
+        CREATE TABLE [dbo].[Question_Payloads] (
+                                                   [question_id] INT NOT NULL PRIMARY KEY,
+                                                   [payload_json] NVARCHAR(MAX) NULL,
+                                                   CONSTRAINT [FK_Question_Payloads_Questions] FOREIGN KEY ([question_id])
+                                                       REFERENCES [dbo].[Questions]([id]) ON DELETE CASCADE
+        );
+    END
 
 ALTER TABLE dbo.Questions
     ADD difficulty VARCHAR(10) NOT NULL DEFAULT 'easy',
@@ -600,7 +622,12 @@ INSERT INTO dbo.Question_Types
 VALUES ('multiple_choice_single', N'Câu hỏi trắc nghiệm - 1 đáp án đúng', 2, 1, 1),
        ('multiple_choice_multi', N'Câu hỏi trắc nghiệm - nhiều đáp án đúng', 2, 1, NULL),
        ('reorder_words', N'Sắp xếp từ thành câu đúng', 4, 0, 0),
-       ('text_input', N'Nhập câu trả lời từ bàn phím', 0, 0, 0)
+       ('text_input', N'Nhập câu trả lời từ bàn phím', 0, 0, 0),
+       ('fill_in_the_blank', N'Điền vào chỗ trống', 0, 0, 0),
+       ('speaking', N'Phát âm', 2, 0, 0),
+       ('matching', N'Ghép đáp án', 2, 0, 0),
+       ('single_choice_image', N'Chọn hình ảnh', 2, 0, 0),
+         ('listening', N'Nghe và trả lời', 0, 1, 1),
 GO
 
 -- 4.4. Languages
