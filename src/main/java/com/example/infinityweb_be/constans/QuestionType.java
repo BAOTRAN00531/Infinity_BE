@@ -11,7 +11,10 @@ import java.util.Map;
 public enum QuestionType {
 
     MULTIPLE_CHOICE_SINGLE("multiple_choice_single"),
-    MULTIPLE_SINGLE_MULTI("multiple_choice_multi");
+    MULTIPLE_SINGLE_MULTI("multiple_choice_multi"),
+    TEXT_INPUT("text_input"),
+    FILL_IN_THE_BLANK("fill_in_the_blank"),
+    MATCHING("matching");
 
     private final String code;
     private static final Map<String, QuestionType> map = new HashMap<>();

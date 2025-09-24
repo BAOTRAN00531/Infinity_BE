@@ -26,11 +26,30 @@ public class AdminLearningModuleController {
 
     // Lấy tất cả modules hoặc theo courseId (đã trả về DTO)
     @GetMapping
-    public List<LearningModuleDto> getModules(@RequestParam(required = false) Integer courseId) {
+    public List<LearningModuleDto> getModules(
+            @RequestParam(required = false) Integer courseId,
+            Principal principal) {
         if (courseId != null) {
+            // If user is authenticated, include progress
+            if (principal != null) {
+                try {
+                    Integer userId = getUserIdFromPrincipal(principal);
+                    return moduleService.getByCourseIdDtoWithProgress(courseId, userId);
+                } catch (Exception e) {
+                    // If getting user ID fails, return without progress
+                    return moduleService.getByCourseIdDto(courseId);
+                }
+            }
             return moduleService.getByCourseIdDto(courseId);
         }
         return moduleService.getAllDto();
+    }
+
+    private Integer getUserIdFromPrincipal(Principal principal) {
+        String email = principal.getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"))
+                .getId();
     }
 
 

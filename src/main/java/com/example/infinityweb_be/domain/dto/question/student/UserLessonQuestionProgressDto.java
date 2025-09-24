@@ -13,7 +13,7 @@ import lombok.ToString;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserQuestionProgressDto {
+public class UserLessonQuestionProgressDto {
     private Integer lessonId;
     private Integer questionCount;
     private Integer completedCount;

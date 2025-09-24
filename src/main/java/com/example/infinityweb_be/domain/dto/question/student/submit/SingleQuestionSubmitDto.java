@@ -8,4 +8,5 @@ import java.util.List;
 public class SingleQuestionSubmitDto {
     private Integer questionId;
     private List<Integer> questionOptionIds;
+    private String answerText;  // For text input questions
 }

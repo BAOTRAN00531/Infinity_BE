@@ -6,7 +6,7 @@ import com.example.infinityweb_be.domain.Lesson;
 import com.example.infinityweb_be.domain.User;
 import com.example.infinityweb_be.domain.dto.LessonDto;
 import com.example.infinityweb_be.domain.dto.learn.LearnLessonDto;
-import com.example.infinityweb_be.domain.dto.question.student.UserQuestionProgressDto;
+import com.example.infinityweb_be.domain.dto.question.student.UserLessonQuestionProgressDto;
 import com.example.infinityweb_be.repository.LearningModuleRepository;
 import com.example.infinityweb_be.repository.LessonRepository;
 import com.example.infinityweb_be.repository.UserRepository;
@@ -230,13 +230,13 @@ public class LessonService {
         List<Lesson> lessons = lessonRepository.findByModule_Id(moduleId)
                 .stream().sorted(Comparator.comparing(Lesson::getOrderIndex)).toList();
         List<Integer> lessonIds = lessons.stream().map(Lesson::getId).toList();
-        Map<Integer, UserQuestionProgressDto> map = userQuestionProgressRepository.getUserQuestionProgress(userId, lessonIds)
-                .stream().collect(Collectors.toMap(UserQuestionProgressDto::getLessonId, Function.identity()));
+        Map<Integer, UserLessonQuestionProgressDto> map = userQuestionProgressRepository.getUserQuestionProgress(userId, lessonIds)
+                .stream().collect(Collectors.toMap(UserLessonQuestionProgressDto::getLessonId, Function.identity()));
 
         return lessons.stream()
                 .map(lesson -> {
                     Float progress = Optional.ofNullable(map.get(lesson.getId()))
-                            .map(UserQuestionProgressDto::getProgress)
+                            .map(UserLessonQuestionProgressDto::getProgress)
                             .orElse(0f);
                     return new LearnLessonDto(
                             lesson.getId(),
